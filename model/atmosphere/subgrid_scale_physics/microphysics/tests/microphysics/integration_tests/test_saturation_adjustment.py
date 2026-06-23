@@ -14,7 +14,7 @@ import pytest
 from icon4py.model.atmosphere.subgrid_scale_physics.microphysics import (
     saturation_adjustment as satad,
 )
-from icon4py.model.common import dimension as dims
+from icon4py.model.common import dimension as dims, type_alias as ta
 from icon4py.model.common.grid import vertical as v_grid
 from icon4py.model.common.utils import data_allocation as data_alloc
 from icon4py.model.testing import definitions, test_utils
@@ -31,6 +31,7 @@ if TYPE_CHECKING:
 
 @pytest.mark.embedded_static_args
 @pytest.mark.datatest
+@pytest.mark.single_precision_ready
 @pytest.mark.parametrize(
     "experiment_description",
     [definitions.Experiments.WEISMAN_KLEMP_TORUS],
@@ -105,15 +106,15 @@ def test_saturation_adjustement(
     assert test_utils.dallclose(
         updated_qv,
         satad_exit.qv().asnumpy(),
-        atol=1.0e-13,
+        atol=test_utils.scale_tol(1.0e-13),
     )
     assert test_utils.dallclose(
         updated_qc,
         satad_exit.qc().asnumpy(),
-        atol=1.0e-13,
+        atol=test_utils.scale_tol(1.0e-13),
     )
     assert test_utils.dallclose(
         updated_temperature,
         satad_exit.temperature().asnumpy(),
-        atol=1.0e-13,
+        atol=test_utils.scale_tol(1.0e-13),
     )
