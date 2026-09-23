@@ -220,7 +220,7 @@ class FieldSource(GridProvider, Protocol):
             raise TypeError(
                 f"This function is intended to return a Scalar. Field name {field_name!r} looks like a Field (contains 'dims' in metadata)."
             )
-        return scalar
+        return this_metadata.get("dtype", ta.wpfloat)(scalar)
 
     def output_dtype(self, field_name: str) -> state_utils.ScalarType:
         return self.get_metadata(field_name).get("dtype", ta.wpfloat)

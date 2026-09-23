@@ -806,9 +806,6 @@ class GridGeometry(factory.FieldSource):
             f"{self.__class__.__name__} for geometry_type={geometry_name} (grid={self._grid.id!r})"
         )
 
-    def get_wpfloat(self, name: str) -> wpfloat:
-        return ta.wpfloat(self.get_scalar(name))
-
     @property
     def metadata(self) -> dict[str, model.FieldMetaData]:
         return self._attrs
