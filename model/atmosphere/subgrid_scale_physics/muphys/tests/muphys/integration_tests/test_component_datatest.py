@@ -66,7 +66,7 @@ def test_granule_matches_direct_muphys(
 
     granule = MuphysComponent(
         grid=_FullDomainGrid(graupel_input.ncells, graupel_input.nlev),  # type: ignore[arg-type]  # mini data has no icon grid
-        dtime=datetime.timedelta(seconds=experiment.dt),
+        dtime=datetime.timedelta(seconds=float(experiment.dt)),
         qnc=experiment.qnc,
         backend=backend_like,
         step=muphys_program,
