@@ -33,7 +33,6 @@ from icon4py.model.common.grid import (
 )
 from icon4py.model.common.math import coordinate_transformations as coord_trans, utils as math_utils
 from icon4py.model.common.states import factory, model, utils as state_utils
-from icon4py.model.common.type_alias import wpfloat
 from icon4py.model.common.utils import data_allocation as data_alloc
 
 
@@ -419,8 +418,11 @@ class GridGeometry(factory.FieldSource):
             )
             self.register_provider(mean_dual_cell_area_np)
 
+            def _sqrt(input_val: np.float64) -> np.float64:
+                return gtx.sqrt(input_val)
+
             characteristic_length_np = factory.NumpyDataProvider(
-                func=lambda input_val: gtx.sqrt(input_val),  # noqa: PLW0108
+                func=_sqrt,
                 domain=(),
                 deps={
                     "input_val": attrs.MEAN_CELL_AREA,
