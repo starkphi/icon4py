@@ -47,7 +47,7 @@ import logging
 import types
 import typing
 from collections.abc import Callable, Iterator, Mapping, MutableMapping, Sequence
-from typing import Any, Protocol, TypeVar, cast
+from typing import Any, Protocol, TypeVar
 
 import gt4py.next as gtx
 import gt4py.next.typing as gtx_typing
@@ -210,8 +210,7 @@ class FieldSource(GridProvider, Protocol):
                 f"This function is intended to return a Field. Field name {field_name!r} looks like a Scalar ('dims' missing in metadata)."
             )
         dtype_metadata = this_metadata.get("dtype", ta.wpfloat)
-        # `astype` is a `BuiltInFunction`, whose overloads are erased by the decorator.
-        return cast("state_utils.GTXFieldType", gtx.astype(field, dtype_metadata))
+        return data_alloc.astype_if_needed(field, dtype_metadata)
 
     def get_scalar(self, field_name: str) -> state_utils.ScalarType:
         scalar = self.get_full_precision(field_name)

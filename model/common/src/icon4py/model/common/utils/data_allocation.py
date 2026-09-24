@@ -118,6 +118,13 @@ def reallocate(
     return gtx.as_field(field.domain, data=field.ndarray, allocator=allocator, dtype=dtype)
 
 
+def astype_if_needed(field: gtx.Field, dtype: type) -> gtx.Field:
+    """Like `gtx.astype`, but return `field` itself instead of a copy if it already has `dtype`."""
+    if field.dtype.scalar_type == dtype:
+        return field
+    return gtx.astype(field, dtype)
+
+
 def random_field(
     grid: grid_base.Grid,
     *dims: gtx.Dimension,
