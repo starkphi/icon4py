@@ -232,8 +232,7 @@ def jablonowski_williamson(  # noqa: PLR0915 [too-many-statements]
         vertical_end=num_levels,
         offset_provider=grid.connectivities,
     )
-    eta_v_at_edge = gtx.astype(eta_v_at_edge_dp, ta.wpfloat)
-    exchange.exchange(dims.EdgeDim, eta_v_at_edge)
+    exchange.exchange(dims.EdgeDim, eta_v_at_edge_dp)
     log.info("Cell-to-edge eta_v computation completed.")
 
     vn_dp = testcases_utils.zonalwind_2_normalwind_ndarray(
