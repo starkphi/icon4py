@@ -654,7 +654,7 @@ class Diffusion:
             constant_args={
                 "theta_ref_mc": self._metric_state.theta_ref_mc,
                 "thresh_tdiff": self.thresh_tdiff,
-                "smallest_vpfloat": constants.VP_EPS,
+                "smallest_vpfloat": constants.VP_NEG_HUGE,
             },
             horizontal_sizes={
                 "horizontal_start": self._edge_start_nudging,

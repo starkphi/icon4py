@@ -155,6 +155,7 @@ _H_SCAL_BG: Final[ta.wpfloat] = HEIGHT_SCALE_FOR_REFERENCE_ATMOSPHERE
 # Math constants
 WP_EPS = float_info(ta.wpfloat).eps  # EPSILON(1._wp)
 VP_EPS = float_info(ta.vpfloat).eps
+VP_NEG_HUGE = -float_info(ta.vpfloat).max  # -HUGE(0._vp)
 DP_EPS = float_info(float64).eps
 
 # Implementation constants
