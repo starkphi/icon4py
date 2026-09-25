@@ -70,7 +70,7 @@ def test_validate_divdamp_fields_against_savepoint_values(
         allocator=backend,
     )
     smagorinsky.en_smag_fac_for_zero_nshift.with_backend(backend)(
-        grid_savepoint.vct_a(),
+        data_alloc.astype_if_needed(grid_savepoint.vct_a(), wpfloat),
         config.fourth_order_divdamp_factor,
         config.fourth_order_divdamp_factor2,
         config.fourth_order_divdamp_factor3,
@@ -1582,7 +1582,7 @@ def test_apply_divergence_damping_and_update_vn(  # noqa: PLR0917 [too-many-posi
     vn_ref = sp_nh_exit.vn_new()
 
     smagorinsky.en_smag_fac_for_zero_nshift.with_backend(backend)(
-        grid_savepoint.vct_a(),
+        data_alloc.astype_if_needed(grid_savepoint.vct_a(), wpfloat),
         config.fourth_order_divdamp_factor,
         config.fourth_order_divdamp_factor2,
         config.fourth_order_divdamp_factor3,
