@@ -230,10 +230,10 @@ class IconGridSavepoint(IconSavepoint):
         return self._get_field("edge_vert_length", dims.EdgeDim, dims.E2VDim)
 
     def vct_a(self):
-        return self._get_field("vct_a", dims.KHalfDim)
+        return self._get_field("vct_a", dims.KHalfDim, dtype=gtx.float64)
 
     def vct_b(self):
-        return self._get_field("vct_b", dims.KHalfDim)
+        return self._get_field("vct_b", dims.KHalfDim, dtype=gtx.float64)
 
     def tangent_orientation(self):
         return self._get_field("tangent_orientation", dims.EdgeDim)

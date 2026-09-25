@@ -14,7 +14,7 @@ import gt4py.next as gtx
 import numpy as np
 import pytest
 
-from icon4py.model.common import dimension as dims, type_alias as ta
+from icon4py.model.common import dimension as dims
 from icon4py.model.common.decomposition import definitions as decomposition
 from icon4py.model.common.grid import vertical as v_grid
 from icon4py.model.common.utils import data_allocation as data_alloc
@@ -371,7 +371,7 @@ def test_compute_vertical_coordinate(  # noqa: PLR0917 [too-many-positional-argu
         topography = topography_savepoint.topo_c()
     elif experiment.description == test_defs.Experiments.EXCLAIM_APE:
         topography = data_alloc.zero_field(
-            icon_grid, dims.CellDim, allocator=backend, dtype=ta.wpfloat
+            icon_grid, dims.CellDim, allocator=backend, dtype=gtx.float64
         )
 
     geofac_n2s = interpolation_savepoint.geofac_n2s()

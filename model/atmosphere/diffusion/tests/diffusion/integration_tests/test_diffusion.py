@@ -230,7 +230,7 @@ def test_diffusion_init(  # noqa: PLR0917 [too-many-positional-arguments]
     expected_enh_smag_fac = ref_funcs.enhanced_smagorinski_factor_numpy(
         additional_parameters.smagorinski_factor,
         additional_parameters.smagorinski_height,
-        vertical_params.vct_a.ndarray,
+        vertical_params.interface_physical_height.ndarray,
     )
     assert test_utils.dallclose(diffusion_granule.enh_smag_fac.asnumpy(), expected_enh_smag_fac)
 

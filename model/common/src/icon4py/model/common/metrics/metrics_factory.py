@@ -172,7 +172,7 @@ class MetricsFieldsFactory(factory.FieldSource, factory.GridProvider):
         )
         log.debug(f"using array_ns {self._xp} ")
         self._config = config
-        self._vct_a_1 = self._vertical_grid.interface_physical_height.ndarray[0].item()
+        self._vct_a_1 = self._vertical_grid.vct_a.ndarray[0].item()
         self._damping_height = gtx.float64(vertical_grid.config.rayleigh_damping_height)
 
         k_index = data_alloc.index_field(
@@ -193,12 +193,11 @@ class MetricsFieldsFactory(factory.FieldSource, factory.GridProvider):
 
         e_refin_ctrl = self._grid.refinement_control[dims.EdgeDim]
 
-        vct_a_dp = gtx.astype(self._vertical_grid.interface_physical_height, gtx.float64)
         self.register_provider(
             factory.PrecomputedFieldProvider(
                 fields={
                     "topography": topography,
-                    "vct_a": vct_a_dp,
+                    "vct_a": self._vertical_grid.vct_a,
                     "c_refin_ctrl": c_refin_ctrl,
                     "e_refin_ctrl": e_refin_ctrl,
                     "e_owner_mask": e_owner_mask,
