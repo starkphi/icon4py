@@ -15,7 +15,7 @@ import gt4py.next as gtx
 import numpy as np
 import pytest
 
-from icon4py.model.common import dimension as dims, utils as common_utils
+from icon4py.model.common import dimension as dims, type_alias as ta, utils as common_utils
 from icon4py.model.common.decomposition import definitions as decomposition
 from icon4py.model.common.grid import horizontal as h_grid, icon, simple, vertical as v_grid
 from icon4py.model.common.math import (
@@ -392,3 +392,54 @@ def test_compute_scalar_value_from_numpy_provider(
     value = height_coordinate_source.get_scalar("minimal_height")
     assert np.isscalar(value)
     assert value_ref == value
+
+
+def _double_precision_source() -> SimpleFieldSource:
+    """Field source on the simple grid holding float64 data, like the factories do internally."""
+    grid = simple.simple_grid()
+    field = data_alloc.random_field(grid, dims.CellDim, dims.KDim, dtype=gtx.float64)
+    source = SimpleFieldSource(
+        data_=dict(
+            [_prep_for_dict("default_dtype", field), _prep_for_dict("explicit_double", field)]
+        ),
+        backend=None,
+        grid=grid,  # type: ignore[arg-type]  # simple grid instead of IconGrid, only used as grid provider here
+    )
+    source.register_provider(
+        factory.PrecomputedFieldProvider(fields={"scalar": gtx.float64(1.0 / 3.0)})
+    )
+    source.with_metadata(
+        {
+            "explicit_double": {
+                **_basic_metadata("explicit_double", dims.CellDim, dims.KDim),
+                "dtype": gtx.float64,
+            },
+            "scalar": {"standard_name": "scalar", "units": ""},
+        }
+    )
+    return source
+
+
+@pytest.mark.single_precision_ready
+def test_get_exports_field_in_metadata_dtype() -> None:
+    source = _double_precision_source()
+    full_precision = source.get_full_precision("default_dtype")
+    exported = source.get("default_dtype")
+
+    assert isinstance(full_precision, gtx.Field)
+    assert full_precision.dtype.scalar_type == np.float64
+    assert exported.dtype.scalar_type == ta.wpfloat
+    if ta.wpfloat == gtx.float64:
+        assert exported is full_precision, "no copy expected if the dtype already matches"
+    else:
+        assert np.array_equal(exported.asnumpy(), full_precision.asnumpy().astype(ta.wpfloat))
+
+    explicit_double = source.get("explicit_double")
+    assert explicit_double is source.get_full_precision("explicit_double")
+
+
+@pytest.mark.single_precision_ready
+def test_get_scalar_exports_in_metadata_dtype() -> None:
+    value = _double_precision_source().get_scalar("scalar")
+    assert type(value) is ta.wpfloat
+    assert value == ta.wpfloat(1.0 / 3.0)
