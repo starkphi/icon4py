@@ -152,34 +152,27 @@ class VerticalGrid:
     """
     Contains vertical physical parameters defined on the vertical grid derived from vertical grid configuration.
 
-    _vct_a and _vct_b: See docstring of get_vct_a_and_vct_b. Note that the height index starts from the model top.
-        Stored in double precision; `interface_physical_height` provides `vct_a` in working precision.
+    vct_a and vct_b: See docstring of get_vct_a_and_vct_b. Note that the height index starts from the model top.
+        Must be double precision; `interface_physical_height` provides `vct_a` in working precision.
     _end_index_of_damping_layer: Height index above which Rayleigh damping of vertical wind is applied.
     _start_index_for_moist_physics: Height index above which moist physics and advection of cloud and precipitation variables are turned off.
     _end_index_of_flat_layer: Height index above which coordinate surfaces are flat.
     """
 
     config: VerticalGridConfig
-    vct_a: dataclasses.InitVar[fa.KHalfField[gtx.float64]]
-    vct_b: dataclasses.InitVar[fa.KHalfField[gtx.float64] | None]
-    _vct_a: fa.KHalfField[gtx.float64] = dataclasses.field(init=False)
-    _vct_b: fa.KHalfField[gtx.float64] | None = dataclasses.field(init=False)
+    vct_a: fa.KHalfField[gtx.float64]
+    vct_b: fa.KHalfField[gtx.float64] | None
     _end_index_of_damping_layer: Final[gtx.int32] = dataclasses.field(init=False)
     _start_index_for_moist_physics: Final[gtx.int32] = dataclasses.field(init=False)
     _end_index_of_flat_layer: Final[gtx.int32] = dataclasses.field(init=False)
 
-    def __post_init__(self, vct_a, vct_b):
-        object.__setattr__(
-            self,
-            "_vct_a",
-            data_alloc.astype_if_needed(vct_a, gtx.float64),
-        )
-        object.__setattr__(
-            self,
-            "_vct_b",
-            data_alloc.astype_if_needed(vct_b, gtx.float64) if vct_b is not None else None,
-        )
-        vct_a_array = self._vct_a.asnumpy()
+    def __post_init__(self):
+        for name in ("vct_a", "vct_b"):
+            vct = getattr(self, name)
+            assert vct is None or vct.dtype.scalar_type == np.float64, (
+                f"{name} must be float64 (factories compute in double precision), got {vct.dtype}"
+            )
+        vct_a_array = self.vct_a.asnumpy()
         object.__setattr__(
             self,
             "_end_index_of_damping_layer",
@@ -205,7 +198,7 @@ class VerticalGrid:
         for key, value in self.metadata_interface_physical_height.items():
             vertical_params_properties.append(f"    {key}: {value}")
         vertical_params_properties.append("Level    Coordinate    Thickness:")
-        vct_a_array = self._vct_a.ndarray
+        vct_a_array = self.vct_a.ndarray
         dvct = vct_a_array[:-1] - vct_a_array[1:]
         array_value = [
             f"   0   {vct_a_array[0]:12.3f}             ",
@@ -255,7 +248,7 @@ class VerticalGrid:
     @functools.cached_property
     def interface_physical_height(self) -> fa.KHalfField[ta.wpfloat]:
         """`vct_a` in working precision."""
-        return data_alloc.astype_if_needed(self._vct_a, ta.wpfloat)
+        return data_alloc.astype_if_needed(self.vct_a, ta.wpfloat)
 
     @functools.cached_property
     def kstart_moist(self) -> gtx.int32:
@@ -271,16 +264,6 @@ class VerticalGrid:
     def end_index_of_damping_layer(self) -> gtx.int32:
         """Vertical index where damping ends."""
         return self.index(Domain(dims.KDim, Zone.DAMPING))
-
-    @property
-    def vct_a(self) -> fa.KHalfField[gtx.float64]:
-        """`vct_a` in double precision (for the factories)."""
-        return self._vct_a
-
-    @property
-    def vct_b(self) -> fa.KHalfField[gtx.float64] | None:
-        """`vct_b` in double precision."""
-        return self._vct_b
 
     def size(self, dim: gtx.Dimension) -> int:
         assert dim.kind == gtx.DimensionKind.VERTICAL, "Only vertical dimensions are supported."
