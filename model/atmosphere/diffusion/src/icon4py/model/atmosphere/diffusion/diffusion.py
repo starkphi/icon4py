@@ -140,7 +140,7 @@ class ForcingType(int, enum.Enum):
     NWP = 3  #: Numerical Weather Prediction forcing (inwp)
 
 
-@dataclasses.dataclass(kw_only=True)
+@dataclasses.dataclass(frozen=True, kw_only=True)
 class DiffusionConfig:
     """
     Contains necessary parameter to configure a diffusion run.

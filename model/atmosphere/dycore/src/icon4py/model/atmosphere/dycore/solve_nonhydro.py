@@ -148,7 +148,7 @@ class IntermediateFields:
         )
 
 
-@dataclasses.dataclass(kw_only=True)
+@dataclasses.dataclass(frozen=True, kw_only=True)
 class NonHydrostaticConfig:
     """
     Contains necessary parameter to configure a nonhydro run.

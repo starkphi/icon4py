@@ -100,9 +100,7 @@ def _get_or_initialize(experiment: test_defs.Experiment, backend: gtx_typing.Bac
 
 @pytest.mark.single_precision_ready
 def test_diffusion_coefficients_with_hdiff_efdt_ratio():
-    config = diffusion.DiffusionConfig()
-    config.hdiff_efdt_ratio = 1.0
-    config.hdiff_w_efdt_ratio = 2.0
+    config = diffusion.DiffusionConfig(hdiff_efdt_ratio=1.0, hdiff_w_efdt_ratio=2.0)
 
     params = diffusion.DiffusionParams(config)
 
@@ -114,9 +112,7 @@ def test_diffusion_coefficients_with_hdiff_efdt_ratio():
 
 @pytest.mark.single_precision_ready
 def test_diffusion_coefficients_without_hdiff_efdt_ratio():
-    config = diffusion.DiffusionConfig()
-    config.hdiff_efdt_ratio = 0.0
-    config.hdiff_w_efdt_ratio = 0.0
+    config = diffusion.DiffusionConfig(hdiff_efdt_ratio=0.0, hdiff_w_efdt_ratio=0.0)
 
     params = diffusion.DiffusionParams(config)
 
@@ -128,9 +124,7 @@ def test_diffusion_coefficients_without_hdiff_efdt_ratio():
 
 @pytest.mark.single_precision_ready
 def test_smagorinski_heights_diffusion_type_5_are_consistent():
-    config = diffusion.DiffusionConfig()
-    config.smagorinski_scaling_factor = 0.15
-    config.diffusion_type = 5
+    config = diffusion.DiffusionConfig(smagorinski_scaling_factor=0.15, diffusion_type=5)
 
     params = diffusion.DiffusionParams(config)
     assert len(params.smagorinski_height) == 4
