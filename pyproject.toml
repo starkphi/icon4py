@@ -388,7 +388,7 @@ url = 'https://gridtools.github.io/pypi/'
 
 [tool.uv.sources]
 dace = {git = "https://github.com/philip-paul-mueller/dace", branch = "phimuell__new-gpu-codegen-dev"}
-gt4py = {git = "https://github.com/edopao/gt4py", branch = "dace_mixed_ir"}
+gt4py = {path = "../gt4py", editable = true}
 # gt4py = {index = "test.pypi"}
 icon4py-atmosphere-advection = {workspace = true}
 icon4py-atmosphere-diffusion = {workspace = true}
