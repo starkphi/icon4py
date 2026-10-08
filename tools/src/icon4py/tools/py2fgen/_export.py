@@ -8,6 +8,8 @@
 
 import dataclasses
 import functools
+import os
+import sys
 import types
 import typing
 from collections.abc import Callable, Mapping
@@ -128,6 +130,8 @@ class _DecoratedFunction:
         }
 
     def __call__(self, ffi: cffi.FFI, perf_counters: dict | None, **kwargs: Any) -> Any:
+        if _TIMING:
+            return _timed_call(self, ffi, perf_counters, **kwargs)
         # Notes: For performance reasons we could switch to positional-only arguments
         # (this is purely internal between the generated Python code and this function).
         # However, an experiment showed that this had small impact.
@@ -156,6 +160,71 @@ class _DecoratedFunction:
                 e.add_note(f"while writing back argument '{k}' of '{self._fun.__name__}'")
                 raise
         return result
+
+
+_TIMING = os.environ.get("ICON4PY_TIMING", "0") == "1"
+_TIMING_CALLS: dict[str, int] = {}
+
+
+def _device_sync(on_gpu: bool) -> None:
+    if on_gpu:
+        import cupy as cp
+
+        cp.cuda.runtime.deviceSynchronize()
+
+
+def _address(obj: Any) -> int | None:
+    arr = getattr(obj, "ndarray", None)
+    if arr is None:
+        return None
+    if hasattr(arr, "data") and hasattr(arr.data, "ptr"):
+        return int(arr.data.ptr)
+    if hasattr(arr, "ctypes"):
+        return int(arr.ctypes.data)
+    return None
+
+
+def _timed_call(self, ffi: cffi.FFI, perf_counters: dict | None, **kwargs: Any) -> Any:
+    """Measurement only (branch measure/boundary-timing): phase wall times with a device sync at
+    each boundary, plus the bytes the conversion layer copies. One line per call to stderr."""
+    on_gpu = any(isinstance(v, tuple) and len(v) == 4 and v[2] for v in kwargs.values())
+    _device_sync(on_gpu)
+    t0 = _runtime.perf_counter()
+    mapped = {}
+    for k, v in kwargs.items():
+        mapped[k] = self._mapping[k](v, ffi=ffi) if k in self._mapping else v
+    _device_sync(on_gpu)
+    t1 = _runtime.perf_counter()
+    result = self._fun(**mapped)
+    _device_sync(on_gpu)
+    t2 = _runtime.perf_counter()
+    for k, writeback in self._writeback.items():
+        writeback(kwargs[k], mapped[k], ffi=ffi)
+    _device_sync(on_gpu)
+    t3 = _runtime.perf_counter()
+    name = self._fun.__name__
+    n = _TIMING_CALLS[name] = _TIMING_CALLS.get(name, 0) + 1
+    copied_in = copied_out = 0
+    n_in = n_out = 0
+    for k, v in kwargs.items():
+        if not (isinstance(v, tuple) and len(v) == 4) or v[0] is None or k not in self._mapping:
+            continue
+        addr = _address(mapped[k])
+        if addr is None or addr == int(ffi.cast("uintptr_t", v[0])):
+            continue
+        nbytes = mapped[k].ndarray.nbytes
+        copied_in += nbytes
+        n_in += 1
+        if k in self._writeback:
+            copied_out += nbytes
+            n_out += 1
+        if n == 1:
+            print(f"TIMING_ARG {name} {k} shape={tuple(v[1])} icon4py_bytes={nbytes} "
+                  f"writeback={k in self._writeback}", file=sys.stderr, flush=True)
+    print(f"TIMING {name} call={n} convert={t1 - t0:.6f} granule={t2 - t1:.6f} "
+          f"writeback={t3 - t2:.6f} copied_in={copied_in} n_in={n_in} copied_out={copied_out} "
+          f"n_out={n_out}", file=sys.stderr, flush=True)
+    return result
 
 
 def export(
