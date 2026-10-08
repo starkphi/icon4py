@@ -209,6 +209,12 @@ variables:
       PYTEST_ARGS="--backend=$BACKEND"
       if [ -n "${GRID:-}" ]; then PYTEST_ARGS="$PYTEST_ARGS --grid=$GRID"; fi
       if [ -n "${LEVEL:-}" ]; then PYTEST_ARGS="$PYTEST_ARGS --level=$LEVEL"; fi
+      # Don't start more pytest workers than there are tests. The count is set
+      # by scripts/python/generate_ci_pipeline.py (_num_tests_variable).
+      NUM_TESTS_VAR="ICON4PY_CI_NUM_TESTS_${MODEL_SUBSET}_${MODEL_SUBPACKAGE}_${BACKEND}_${GRID:-}_${LEVEL:-}_${FLOAT_PRECISION}"
+      NUM_TESTS="${!NUM_TESTS_VAR:-}"
+      if [ -n "$NUM_TESTS" ] && [ "$NUM_TESTS" -lt "$NUM_PROCESSES" ]; then export NUM_PROCESSES="$NUM_TESTS"; fi
+      echo "Running $NUM_PROCESSES pytest workers for ${NUM_TESTS:-unknown number of} selected tests"
       nox -s "test_model-${PYVERSION_SHORT}($MODEL_SUBSET, $MODEL_SUBPACKAGE)" -- $PYTEST_ARGS
   rules:
     - if: $BACKEND == 'dace_gpu' || $BACKEND == 'gtfn_gpu'

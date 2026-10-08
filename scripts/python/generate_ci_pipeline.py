@@ -27,6 +27,7 @@ script does the filtering at generation time instead.
 
 from __future__ import annotations
 
+import dataclasses
 import os
 import pathlib
 import re
@@ -199,21 +200,33 @@ def _log_collection_output(
     print(f"{'=' * 60}\n", file=sys.stderr)
 
 
+def _parse_num_selected_tests(output: str) -> int | None:
+    """Return the number of selected tests from pytest's ``--collect-only`` summary.
+
+    The summary line reads ``47/207 tests collected (160 deselected) in 3.1s``,
+    or ``207 tests collected in 3.1s`` when nothing was deselected. Returns
+    None if no summary line is found.
+    """
+    matches = re.findall(r"(\d+)(?:/\d+)? tests? collected", output)
+    return int(matches[-1]) if matches else None
+
+
 def _run_nox_collection(
     session_name: str,
     pytest_args: list[str],
     env: dict[str, str],
     timeout: float,
     variables: dict[str, str],
-) -> bool:
-    """Run a nox session with --collect-only and return whether to keep the cell.
+) -> int | None:
+    """Run a nox session with --collect-only and return the number of selected tests.
 
     *variables* are the cell's CI job variables, including the ones the job
     template derives from matrix entries; they are exported so that collection
     sees the same environment as the generated job.
 
-    Returns True when nox exits 0 (the cell collected at least one runnable
-    test). Returns False when nox exits 1 (the cell collected zero tests).
+    When nox exits 0 the cell is kept and the number of selected tests is
+    returned, or None if it cannot be parsed from the output. Returns 0 when
+    nox exits 1 (the cell collected zero tests).
 
     Raises on any other nox exit code, subprocess timeout, or OSError.
     """
@@ -243,10 +256,10 @@ def _run_nox_collection(
         check=False,
     )
 
-    if result.returncode == 0:
-        return True
-
     combined = f"{result.stdout}\n{result.stderr}".strip()
+    if result.returncode == 0:
+        return _parse_num_selected_tests(combined)
+
     if result.returncode == 1 and re.search(
         r"(?:exit code|returned non-zero exit code) 5\b", combined
     ):
@@ -257,7 +270,7 @@ def _run_nox_collection(
             result.stdout,
             result.stderr,
         )
-        return False
+        return 0
 
     _log_collection_output(
         "ERROR: nox collection failed",
@@ -281,6 +294,29 @@ class _MatrixCell:
     matrix: dict[str, str]
     session: str
     pytest_args: list[str]
+    num_tests: int | None = None
+
+
+def _num_tests_variable(cell: _MatrixCell) -> str | None:
+    """Return the pipeline variable name holding the cell's number of selected tests.
+
+    Only serial model cells get one; ``.test_model_aarch64`` in
+    ``.cscs-ci/base.yml`` builds the same name to cap NUM_PROCESSES, keep the
+    two in sync. The count is passed as a pipeline variable instead of a
+    matrix entry because matrix entries are part of the job name, which keys
+    the GT4Py build cache.
+    """
+    if "MODEL_SUBSET" not in cell.variables:
+        return None
+    parts = [
+        cell.variables["MODEL_SUBSET"],
+        cell.matrix["MODEL_SUBPACKAGE"],
+        cell.matrix["BACKEND"],
+        cell.matrix.get("GRID", ""),
+        cell.matrix.get("LEVEL", ""),
+        cell.matrix["FLOAT_PRECISION"],
+    ]
+    return "ICON4PY_CI_NUM_TESTS_" + "_".join(parts)
 
 
 def _derived_variables(matrix: dict[str, str]) -> dict[str, str]:
@@ -435,8 +471,9 @@ def _model_mpi_cells(
 def _collect_cells(cells: list[_MatrixCell]) -> tuple[list[_MatrixCell], list[_MatrixCell]]:
     """Run collection for every cell in parallel and return kept/dropped cells.
 
-    Cells where nox exits 0 are kept. Cells where nox exits 1 are dropped
-    because the corresponding matrix cell contains no tests.
+    Cells where nox exits 0 are kept, with ``num_tests`` set to the number of
+    selected tests. Cells where nox exits 1 are dropped because the
+    corresponding matrix cell contains no tests.
     Any collection failure, subprocess timeout, or non-0/1 exit code aborts
     pipeline generation.
     """
@@ -447,7 +484,7 @@ def _collect_cells(cells: list[_MatrixCell]) -> tuple[list[_MatrixCell], list[_M
         return cells, []
 
     env = _collection_env()
-    results: list[bool] = [False] * len(cells)
+    results: list[int | None] = [0] * len(cells)
 
     with ThreadPoolExecutor(max_workers=_COLLECTION_MAX_WORKERS) as executor:
         futures = {
@@ -464,14 +501,21 @@ def _collect_cells(cells: list[_MatrixCell]) -> tuple[list[_MatrixCell], list[_M
         for future in as_completed(futures):
             results[futures[future]] = future.result()
 
-    kept = [cell for cell, ok in zip(cells, results) if ok]
-    dropped = [cell for cell, ok in zip(cells, results) if not ok]
+    kept = [dataclasses.replace(cell, num_tests=n) for cell, n in zip(cells, results) if n != 0]
+    dropped = [cell for cell, n in zip(cells, results) if n == 0]
     return kept, dropped
 
 
 def _build_pipeline(cells: list[_MatrixCell]) -> dict:
     """Build the child pipeline dict from the surviving matrix cells."""
     pipeline: dict = {"include": [{"local": ".cscs-ci/base.yml"}]}
+    num_tests_variables = {
+        name: str(cell.num_tests)
+        for cell in cells
+        if cell.num_tests is not None and (name := _num_tests_variable(cell)) is not None
+    }
+    if num_tests_variables:
+        pipeline["variables"] = num_tests_variables
     jobs: dict[str, dict] = {}
     for cell in cells:
         job = jobs.setdefault(
@@ -491,7 +535,8 @@ def _build_pipeline(cells: list[_MatrixCell]) -> dict:
 
 def _format_cell(cell: _MatrixCell) -> str:
     matrix = ", ".join(f"{key}={value}" for key, value in cell.matrix.items())
-    return f"  {cell.job_name}: {matrix}"
+    num_tests = f" ({cell.num_tests} tests)" if cell.num_tests is not None else ""
+    return f"  {cell.job_name}: {matrix}{num_tests}"
 
 
 def _print_collection_summary(
