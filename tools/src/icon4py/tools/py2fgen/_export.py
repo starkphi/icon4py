@@ -88,6 +88,27 @@ def get_param_mappings(
     return mappings
 
 
+@dataclasses.dataclass(frozen=True)
+class CallHooks:
+    """
+    Called once per call of an exported function, around the per-argument mapping functions,
+    e.g. to wait once for copies that the mapping functions only launched.
+
+    - ``after_convert``: after every argument is mapped, before the function runs;
+    - ``before_writeback``: after the function returns, before the first ``writeback``;
+    - ``after_writeback``: after the last ``writeback``.
+    """
+
+    after_convert: Callable[[], None] | None = None
+    before_writeback: Callable[[], None] | None = None
+    after_writeback: Callable[[], None] | None = None
+
+
+def _run_hook(hook: Callable[[], None] | None) -> None:
+    if hook is not None:
+        hook()
+
+
 # Note that the mapping functions are performance relevant and should be cached (not the hook itself)
 @dataclasses.dataclass
 class _DecoratedFunction:
@@ -103,6 +124,7 @@ class _DecoratedFunction:
     annotation_descriptor_hook: AnnotationDescriptorHook | None
     annotation_mapping_hook: AnnotationMappingHook | None
     param_descriptors: _definitions.ParamDescriptors | None
+    call_hooks: CallHooks = dataclasses.field(default_factory=CallHooks)
     _mapping: Mapping[str, Callable] = dataclasses.field(init=False)
     _writeback: Mapping[str, Callable] = dataclasses.field(init=False)
 
@@ -150,15 +172,18 @@ class _DecoratedFunction:
             except Exception as e:
                 e.add_note(f"while converting argument '{k}' of '{self._fun.__name__}'")
                 raise
+        _run_hook(self.call_hooks.after_convert)
         if __debug__ and perf_counters is not None:
             perf_counters["convert_end_time"] = _runtime.perf_counter()
         result = self._fun(**mapped)
+        _run_hook(self.call_hooks.before_writeback)
         for k, writeback in self._writeback.items():
             try:
                 writeback(kwargs[k], mapped[k], ffi=ffi)
             except Exception as e:
                 e.add_note(f"while writing back argument '{k}' of '{self._fun.__name__}'")
                 raise
+        _run_hook(self.call_hooks.after_writeback)
         return result
 
 
@@ -193,13 +218,16 @@ def _timed_call(self, ffi: cffi.FFI, perf_counters: dict | None, **kwargs: Any) 
     mapped = {}
     for k, v in kwargs.items():
         mapped[k] = self._mapping[k](v, ffi=ffi) if k in self._mapping else v
+    _run_hook(self.call_hooks.after_convert)
     _device_sync(on_gpu)
     t1 = _runtime.perf_counter()
     result = self._fun(**mapped)
     _device_sync(on_gpu)
     t2 = _runtime.perf_counter()
+    _run_hook(self.call_hooks.before_writeback)
     for k, writeback in self._writeback.items():
         writeback(kwargs[k], mapped[k], ffi=ffi)
+    _run_hook(self.call_hooks.after_writeback)
     _device_sync(on_gpu)
     t3 = _runtime.perf_counter()
     name = self._fun.__name__
@@ -231,6 +259,7 @@ def export(
     annotation_descriptor_hook: AnnotationDescriptorHook | None = None,
     annotation_mapping_hook: AnnotationMappingHook | None = None,
     param_descriptors: _definitions.ParamDescriptors | None = None,
+    call_hooks: CallHooks | None = None,
 ) -> Callable[[Callable], Callable]:
     """
     Decorator to mark a function as exportable.
@@ -254,6 +283,8 @@ def export(
     called with the raw argument and the mapped value after the function returns, e.g. to copy
     an array that was converted on the way in back into the caller's memory. It is not called if
     the function raises: the caller then gets an error code, not results.
+
+    ``call_hooks`` (see ``CallHooks``) run once per call around the mapping functions.
     """
 
     # precise typing is impossible since we are manipulating the args (e.g. ArrayInfo to the Python runtime objects)
@@ -264,6 +295,7 @@ def export(
                 annotation_descriptor_hook=annotation_descriptor_hook,
                 annotation_mapping_hook=annotation_mapping_hook,
                 param_descriptors=param_descriptors,
+                call_hooks=call_hooks if call_hooks is not None else CallHooks(),
             ),
             fun,
         )
