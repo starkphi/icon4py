@@ -8,6 +8,8 @@
 
 import dataclasses
 import inspect
+import contextvars
+import enum
 import os
 import typing
 from typing import Literal, TypeAlias
@@ -24,6 +26,36 @@ vpfloat: TypeAlias = gtx.float64  # noqa: UP040
 type anyfloat = gtx.float32 | gtx.float64
 
 precision = os.environ.get("ICON4PY_FLOAT_PRECISION", DEFAULT_PRECISION).lower()
+
+
+
+
+
+class Precision(int, enum.Enum):
+    DOUBLE = 1
+    MIXED = 2
+    SINGLE = 3
+
+_precision_cvar: contextvars.ContextVar = contextvars.ContextVar("precision")
+
+@context_manager
+def working_precision(precision):
+    current_precsion 0 ...
+    set_precision(precision)
+    token = _precision_cvar.set(precision)
+    yield
+    _precision_cvar.reset(token)
+    print("after end")
+
+with working_precision(64):
+    bar()
+
+_ctx = foo()
+_ctx.__enter__()
+bar()
+_ctx.__exit__(exc, asd)
+
+
 
 
 def set_precision(new_precision: Literal["double", "mixed", "single"]) -> None:
