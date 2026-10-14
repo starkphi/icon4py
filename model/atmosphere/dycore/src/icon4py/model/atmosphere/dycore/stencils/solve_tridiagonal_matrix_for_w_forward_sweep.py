@@ -26,7 +26,7 @@ def tridiagonal_forward_sweep_for_w(
     b: vpfloat,
     c: vpfloat,
     d: wpfloat,
-) -> tuple[wpfloat, wpfloat]:
+) -> tuple[vpfloat, wpfloat]:
     """
     |  1   0                  |  | w_0 |    |  0  |          | 1   0                     |  | w_0 |    |  0     |
     | a_1 b_1 c_1             |  | w_1 |    | d_1 |          | 0   1  cnew_1             |  | w_1 |    | dnew_1 |
@@ -40,7 +40,7 @@ def tridiagonal_forward_sweep_for_w(
     normalization = vpfloat("1.0") / (b + a * c_kminus1)  # normalize diagonal element to 1
     c_new = (vpfloat("0.0") - c) * normalization
     d_new = (d - astype(a, wpfloat) * d_kminus1) * astype(normalization, wpfloat)
-    return c_new, d_new  # return type hints for scan operators broken in GT4Py
+    return c_new, d_new
 
 
 @gtx.field_operator

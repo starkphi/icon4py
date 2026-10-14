@@ -7,27 +7,29 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import gt4py.next as gtx
-from gt4py.next import broadcast, minimum
+from gt4py.next import astype, broadcast, minimum
 from gt4py.next.experimental import concat_where
 
 from icon4py.model.common import dimension as dims, field_type_aliases as fa
 from icon4py.model.common.math.smagorinsky import _en_smag_fac_for_zero_nshift
-from icon4py.model.common.type_alias import wpfloat
+from icon4py.model.common.type_alias import vpfloat, wpfloat
 
 
 @gtx.field_operator
-def _scale_k(field: fa.KField[wpfloat], factor: wpfloat) -> fa.KField[wpfloat]:
+def _scale_k(field: fa.KField[vpfloat], factor: vpfloat) -> fa.KField[vpfloat]:
+    # vp throughout, as diff_multfac_smag = enh_smag_fac*REAL(dtime,vp) (mo_nh_diffusion.f90:312)
     return field * factor
 
 
 @gtx.program
-def scale_k(field: fa.KField[wpfloat], factor: wpfloat, scaled_field: fa.KField[wpfloat]) -> None:
+def scale_k(field: fa.KField[vpfloat], factor: vpfloat, scaled_field: fa.KField[vpfloat]) -> None:
     _scale_k(field, factor, out=scaled_field)
 
 
 @gtx.field_operator
-def _setup_smag_limit(diff_multfac_vn: fa.KField[wpfloat]) -> fa.KField[wpfloat]:
-    return wpfloat(0.125) - wpfloat(4.0) * diff_multfac_vn
+def _setup_smag_limit(diff_multfac_vn: fa.KField[wpfloat]) -> fa.KField[vpfloat]:
+    # computed in wp, stored in vp (mo_nh_diffusion.f90:127, 228)
+    return astype(wpfloat(0.125) - wpfloat(4.0) * diff_multfac_vn, vpfloat)
 
 
 @gtx.field_operator
@@ -45,7 +47,7 @@ def _setup_initial_diff_multfac_vn(k4: wpfloat, hdiff_efdt_ratio: wpfloat) -> fa
 @gtx.field_operator
 def _setup_fields_for_initial_step(
     k4: wpfloat, hdiff_efdt_ratio: wpfloat
-) -> tuple[fa.KField[wpfloat], fa.KField[wpfloat]]:
+) -> tuple[fa.KField[wpfloat], fa.KField[vpfloat]]:
     diff_multfac_vn = _setup_initial_diff_multfac_vn(k4, hdiff_efdt_ratio)
     smag_limit = _setup_smag_limit(diff_multfac_vn)
     return diff_multfac_vn, smag_limit
@@ -56,7 +58,7 @@ def setup_fields_for_initial_step(
     k4: wpfloat,
     hdiff_efdt_ratio: wpfloat,
     diff_multfac_vn: fa.KField[wpfloat],
-    smag_limit: fa.KField[wpfloat],
+    smag_limit: fa.KField[vpfloat],
 ) -> None:
     _setup_fields_for_initial_step(k4, hdiff_efdt_ratio, out=(diff_multfac_vn, smag_limit))
 
@@ -74,10 +76,11 @@ def _init_diffusion_local_fields_for_regular_timestep(  # noqa: PLR0917 [too-man
     hdiff_smag_z3: wpfloat,
     hdiff_smag_z4: wpfloat,
     vect_a: fa.KHalfField[wpfloat],
-) -> tuple[fa.KField[wpfloat], fa.KField[wpfloat], fa.KField[wpfloat]]:
+) -> tuple[fa.KField[wpfloat], fa.KField[vpfloat], fa.KField[vpfloat]]:
     diff_multfac_vn = _setup_runtime_diff_multfac_vn(k4, dyn_substeps)
     smag_limit = _setup_smag_limit(diff_multfac_vn)
-    enh_smag_fac = _en_smag_fac_for_zero_nshift(
+    # REAL(..., vp) of a wp expression (mo_nh_diffusion.f90:290)
+    enh_smag_fac_wp = _en_smag_fac_for_zero_nshift(
         vect_a=vect_a,
         hdiff_smag_fac=hdiff_smag_fac,
         hdiff_smag_fac2=hdiff_smag_fac2,
@@ -91,7 +94,7 @@ def _init_diffusion_local_fields_for_regular_timestep(  # noqa: PLR0917 [too-man
     return (
         diff_multfac_vn,
         smag_limit,
-        enh_smag_fac,
+        astype(enh_smag_fac_wp, vpfloat),
     )
 
 
@@ -109,8 +112,8 @@ def init_diffusion_local_fields_for_regular_timestep(  # noqa: PLR0917 [too-many
     hdiff_smag_z4: wpfloat,
     vect_a: fa.KHalfField[wpfloat],
     diff_multfac_vn: fa.KField[wpfloat],
-    smag_limit: fa.KField[wpfloat],
-    enh_smag_fac: fa.KField[wpfloat],
+    smag_limit: fa.KField[vpfloat],
+    enh_smag_fac: fa.KField[vpfloat],
 ) -> None:
     _init_diffusion_local_fields_for_regular_timestep(
         k4=k4,

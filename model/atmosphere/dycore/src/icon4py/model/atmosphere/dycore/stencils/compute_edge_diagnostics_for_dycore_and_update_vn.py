@@ -57,10 +57,10 @@ from icon4py.model.common.type_alias import vpfloat, wpfloat
 def apply_on_vertical_level(
     nflatlev: gtx.int32,
     nflat_gradp: gtx.int32,
-    on_flatlevels: fa.EdgeKField[ta.wpfloat],
-    between_flat_and_flatgradp: fa.EdgeKField[ta.wpfloat],
-    below_flatgradp: fa.EdgeKField[ta.wpfloat],
-) -> fa.EdgeKField[ta.wpfloat]:
+    on_flatlevels: fa.EdgeKField[ta.vpfloat],
+    between_flat_and_flatgradp: fa.EdgeKField[ta.vpfloat],
+    below_flatgradp: fa.EdgeKField[ta.vpfloat],
+) -> fa.EdgeKField[ta.vpfloat]:
     return concat_where(
         dims.KDim < nflatlev,
         on_flatlevels,
@@ -71,7 +71,7 @@ def apply_on_vertical_level(
 @gtx.field_operator
 def apply_hydrostatic_correction_to_horizontal_gradient_of_exner_pressure(
     pg_exdist: fa.EdgeKField[ta.vpfloat],
-    z_hydro_corr: fa.EdgeField[ta.wpfloat],
+    z_hydro_corr: fa.EdgeField[ta.vpfloat],
     z_gradh_exner: fa.EdgeKField[ta.vpfloat],
 ) -> fa.EdgeKField[ta.vpfloat]:
     # Note: In the original Fortran code `pg_exdist` is implemented as a list,
@@ -87,7 +87,7 @@ def _compute_horizontal_pressure_gradient(
     temporal_extrapolation_of_perturbed_exner: fa.CellKField[ta.vpfloat],
     ddz_of_temporal_extrapolation_of_perturbed_exner_on_model_levels: fa.CellKField[ta.vpfloat],
     d2dz2_of_temporal_extrapolation_of_perturbed_exner_on_model_levels: fa.CellKField[ta.vpfloat],
-    hydrostatic_correction_on_lowest_level: fa.EdgeField[ta.wpfloat],
+    hydrostatic_correction_on_lowest_level: fa.EdgeField[ta.vpfloat],
     ddxn_z_full: fa.EdgeKField[ta.vpfloat],
     c_lin_e: gtx.Field[[dims.EdgeDim, dims.E2CDim], ta.wpfloat],
     ikoffset: gtx.Field[[dims.EdgeDim, dims.E2CDim, dims.KDim], gtx.int32],
@@ -96,7 +96,7 @@ def _compute_horizontal_pressure_gradient(
     inv_dual_edge_length: fa.EdgeField[ta.wpfloat],
     nflatlev: gtx.int32,
     nflat_gradp: gtx.int32,
-) -> fa.EdgeKField[ta.wpfloat]:
+) -> fa.EdgeKField[ta.vpfloat]:
     # Note: we only support `TAYLOR_HYDRO`
     horizontal_pressure_gradient = apply_on_vertical_level(
         nflatlev=nflatlev,
@@ -141,7 +141,7 @@ def _compute_rho_theta_pgrad_and_update_vn(
     temporal_extrapolation_of_perturbed_exner: fa.CellKField[ta.vpfloat],
     ddz_of_temporal_extrapolation_of_perturbed_exner_on_model_levels: fa.CellKField[ta.vpfloat],
     d2dz2_of_temporal_extrapolation_of_perturbed_exner_on_model_levels: fa.CellKField[ta.vpfloat],
-    hydrostatic_correction_on_lowest_level: fa.EdgeField[ta.wpfloat],
+    hydrostatic_correction_on_lowest_level: fa.EdgeField[ta.vpfloat],
     predictor_normal_wind_advective_tendency: fa.EdgeKField[ta.vpfloat],
     normal_wind_tendency_due_to_slow_physics_process: fa.EdgeKField[ta.vpfloat],
     normal_wind_iau_increment: fa.EdgeKField[ta.vpfloat],
@@ -175,7 +175,7 @@ def _compute_rho_theta_pgrad_and_update_vn(
 ) -> tuple[
     fa.EdgeKField[ta.wpfloat],
     fa.EdgeKField[ta.wpfloat],
-    fa.EdgeKField[ta.wpfloat],
+    fa.EdgeKField[ta.vpfloat],
     fa.EdgeKField[ta.wpfloat],
 ]:
     # TODO(havogt): it would be nice if we could shrink the start of the compute domain to `start_edge_lateral_boundary_level_7 <= dims.EdgeDim`,
@@ -378,7 +378,7 @@ def compute_rho_theta_pgrad_and_update_vn(
     temporal_extrapolation_of_perturbed_exner: fa.CellKField[ta.vpfloat],
     ddz_of_temporal_extrapolation_of_perturbed_exner_on_model_levels: fa.CellKField[ta.vpfloat],
     d2dz2_of_temporal_extrapolation_of_perturbed_exner_on_model_levels: fa.CellKField[ta.vpfloat],
-    hydrostatic_correction_on_lowest_level: fa.EdgeField[ta.wpfloat],
+    hydrostatic_correction_on_lowest_level: fa.EdgeField[ta.vpfloat],
     predictor_normal_wind_advective_tendency: fa.EdgeKField[ta.vpfloat],
     normal_wind_tendency_due_to_slow_physics_process: fa.EdgeKField[ta.vpfloat],
     normal_wind_iau_increment: fa.EdgeKField[ta.vpfloat],

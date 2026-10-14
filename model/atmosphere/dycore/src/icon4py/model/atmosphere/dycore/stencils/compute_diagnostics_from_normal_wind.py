@@ -27,6 +27,19 @@ def _interpolate_to_half_levels(
     )
 
 
+@gtx.field_operator(grid_type=gtx.GridType.UNSTRUCTURED)
+def _interpolate_to_half_levels_vp(
+    wgtfac_e: fa.EdgeKHalfField[ta.vpfloat],
+    x: fa.EdgeKField[ta.vpfloat],
+) -> fa.EdgeKHalfField[ta.vpfloat]:
+    # as z_vt_ie in mo_velocity_advection.f90:264-266: the first product in vp, the
+    # `(1._wp - wgtfac_e)` term and the sum in wp
+    x_ie_wp = astype(wgtfac_e * x(dims.KHalfDim + 0.5), wpfloat) + (
+        wpfloat("1.0") - astype(wgtfac_e, wpfloat)
+    ) * astype(x(dims.KHalfDim - 0.5), wpfloat)
+    return concat_where(dims.KHalfDim > 0, astype(x_ie_wp, vpfloat), x(dims.KHalfDim + 0.5))
+
+
 @gtx.field_operator
 def _compute_horizontal_kinetic_energy(
     vn: fa.EdgeKField[ta.wpfloat],

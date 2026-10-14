@@ -125,7 +125,7 @@ class IntermediateFields:
     ) -> IntermediateFields:
         return IntermediateFields(
             horizontal_pressure_gradient=data_alloc.zero_field(
-                grid, dims.EdgeDim, dims.KDim, allocator=allocator
+                grid, dims.EdgeDim, dims.KDim, dtype=ta.vpfloat, allocator=allocator
             ),
             rho_at_edges_on_model_levels=data_alloc.zero_field(
                 grid, dims.EdgeDim, dims.KDim, allocator=allocator
@@ -134,16 +134,16 @@ class IntermediateFields:
                 grid, dims.EdgeDim, dims.KDim, allocator=allocator
             ),
             horizontal_gradient_of_normal_wind_divergence=data_alloc.zero_field(
-                grid, dims.EdgeDim, dims.KDim, allocator=allocator
+                grid, dims.EdgeDim, dims.KDim, dtype=ta.vpfloat, allocator=allocator
             ),
             dwdz_at_cells_on_model_levels=data_alloc.zero_field(
-                grid, dims.CellDim, dims.KDim, allocator=allocator
+                grid, dims.CellDim, dims.KDim, dtype=ta.vpfloat, allocator=allocator
             ),
             horizontal_kinetic_energy_at_edges_on_model_levels=data_alloc.zero_field(
-                grid, dims.EdgeDim, dims.KDim, allocator=allocator
+                grid, dims.EdgeDim, dims.KDim, dtype=ta.vpfloat, allocator=allocator
             ),
             tangential_wind_on_half_levels=data_alloc.zero_field(
-                grid, dims.EdgeDim, dims.KHalfDim, allocator=allocator
+                grid, dims.EdgeDim, dims.KHalfDim, dtype=ta.vpfloat, allocator=allocator
             ),
         )
 
