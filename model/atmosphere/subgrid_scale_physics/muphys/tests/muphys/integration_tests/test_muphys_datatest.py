@@ -121,7 +121,7 @@ def test_muphys_granule(
         test_utils.assert_dallclose(
             actual[:, jks:],
             reference[:, jks:],
-            atol=1e-13 if test_utils.wp_is_dp else 3e-9,
+            atol=1e-13 if test_utils.vp_is_dp else 3e-9,
             err_msg=f"{name} in cloud",
         )
         # above the cloudy region ICON does not run the scheme; the full-column
@@ -133,13 +133,13 @@ def test_muphys_granule(
     test_utils.assert_dallclose(
         tend_ta_actual[:, jks:],
         tend_ta_reference[:, jks:],
-        atol=1e-10 if test_utils.wp_is_dp else 2e-5,
+        atol=1e-10 if test_utils.vp_is_dp else 2e-5,
         err_msg="tend_temperature in cloud",
     )
     test_utils.assert_dallclose(
         tend_ta_actual[:, :jks],
         0.0,
-        atol=1e-10 if test_utils.wp_is_dp else 6e-8,
+        atol=1e-10 if test_utils.vp_is_dp else 6e-8,
         err_msg="tend_temperature above cloud",
     )
 
@@ -155,7 +155,7 @@ def test_muphys_granule(
     test_utils.assert_dallclose(
         rain,
         exit_savepoint.rsfl().asnumpy(),
-        atol=1e-10 if test_utils.wp_is_dp else 9e-8,
+        atol=1e-10 if test_utils.vp_is_dp else 9e-8,
         err_msg="rsfl (rain)",
     )
     test_utils.assert_dallclose(
@@ -167,13 +167,13 @@ def test_muphys_granule(
     test_utils.assert_dallclose(
         rain + ice + snow + graupel,
         exit_savepoint.pr().asnumpy(),
-        atol=1e-10 if test_utils.wp_is_dp else 9e-8,
+        atol=1e-10 if test_utils.vp_is_dp else 9e-8,
         err_msg="pr (total precipitation)",
     )
     test_utils.assert_dallclose(
         energy_flux,
         exit_savepoint.ufcs().asnumpy(),
         atol=1e-10,
-        rtol=1e-12 if test_utils.wp_is_dp else 5e-4,
+        rtol=1e-12 if test_utils.vp_is_dp else 5e-4,
         err_msg="ufcs (energy flux)",
     )
