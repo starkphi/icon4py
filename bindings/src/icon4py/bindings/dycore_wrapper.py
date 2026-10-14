@@ -388,7 +388,7 @@ def solve_nh_run(  # noqa: PLR0917 [too-many-positional-arguments]
 
     # Make `max_vcfl` a 0-d array to avoid cupy synchronization, see `_update_max_vertical_cfl`.
     # Note, `max_vcfl` needs to be passed back to Fortran after the timestep.
-    max_vcfl = data_alloc.scalar_like_array(ta.wpfloat(max_vcfl_size1_array[0]), xp)
+    max_vcfl = data_alloc.scalar_like_array(ta.vpfloat(max_vcfl_size1_array[0]), xp)
 
     diagnostic_state_nh = nonhydro_states.DiagnosticStateNonHydro(
         max_vertical_cfl=max_vcfl,
