@@ -34,16 +34,25 @@ def _calculate_nonhydro_buoy_at_cells_on_half_levels(
     exner_w_explicit_weight_parameter: fa.CellField[ta.wpfloat],
     theta_v_at_cells_on_half_levels: fa.CellKHalfField[ta.wpfloat],
     perturbed_exner_at_cells_on_model_levels: fa.CellKField[ta.wpfloat],
-    ddqz_z_half: fa.CellKHalfField[ta.vpfloat],
+    ddqz_z_half: fa.CellKHalfField[ta.wpfloat],
     perturbed_theta_v_at_cells_on_half_levels: fa.CellKHalfField[ta.vpfloat],
     ddz_of_reference_exner_at_cells_on_half_levels: fa.CellKHalfField[ta.vpfloat],
-) -> fa.CellKHalfField[ta.wpfloat]:
-    return exner_w_explicit_weight_parameter * theta_v_at_cells_on_half_levels * (
-        perturbed_exner_at_cells_on_model_levels(dims.KHalfDim - 0.5)
-        - perturbed_exner_at_cells_on_model_levels(dims.KHalfDim + 0.5)
-    ) / ddqz_z_half + astype(
-        perturbed_theta_v_at_cells_on_half_levels * ddz_of_reference_exner_at_cells_on_half_levels,
-        wpfloat,
+) -> fa.CellKHalfField[ta.vpfloat]:
+    # computed in wp, stored in vp: z_th_ddz_exner_c is REAL(vp) (mo_solve_nonhydro.f90:156, 687-690)
+    return astype(
+        exner_w_explicit_weight_parameter
+        * theta_v_at_cells_on_half_levels
+        * (
+            perturbed_exner_at_cells_on_model_levels(dims.KHalfDim - 0.5)
+            - perturbed_exner_at_cells_on_model_levels(dims.KHalfDim + 0.5)
+        )
+        / ddqz_z_half
+        + astype(
+            perturbed_theta_v_at_cells_on_half_levels
+            * ddz_of_reference_exner_at_cells_on_half_levels,
+            wpfloat,
+        ),
+        vpfloat,
     )
 
 
@@ -71,13 +80,13 @@ def _compute_perturbed_quantities_and_interpolation(
     igradp_method: gtx.int32,
     surface_level: gtx.int32,
 ) -> tuple[
-    fa.CellKField[ta.wpfloat],
-    fa.CellKField[ta.wpfloat],
     fa.CellKField[ta.vpfloat],
-    fa.CellKHalfField[ta.vpfloat],
-    fa.CellKHalfField[ta.wpfloat],
-    fa.CellKHalfField[ta.wpfloat],
+    fa.CellKField[ta.vpfloat],
     fa.CellKField[ta.wpfloat],
+    fa.CellKHalfField[ta.wpfloat],
+    fa.CellKHalfField[ta.wpfloat],
+    fa.CellKHalfField[ta.vpfloat],
+    fa.CellKField[ta.vpfloat],
     fa.CellKField[ta.vpfloat],
     fa.CellKField[ta.vpfloat],
 ]:
@@ -101,7 +110,9 @@ def _compute_perturbed_quantities_and_interpolation(
         reference_theta_at_cells_on_model_levels,
     )
 
-    rho_at_cells_on_half_levels = _interpolate_cell_field_to_half_levels_wp(current_rho, wgtfac_c)
+    rho_at_cells_on_half_levels = _interpolate_cell_field_to_half_levels_wp(
+        current_rho, astype(wgtfac_c, wpfloat)
+    )
 
     perturbed_theta_v_at_cells_on_half_levels = (
         _interpolate_cell_field_to_half_levels_with_surface_value_vp(
@@ -117,8 +128,10 @@ def _compute_perturbed_quantities_and_interpolation(
     theta_v_at_cells_on_half_levels = _interpolate_cell_field_to_half_levels_with_surface_value_wp(
         interpolant=current_theta_v,
         wgtfac_c=astype(wgtfac_c, wpfloat),
-        surface_value=reference_theta_at_cells_on_half_levels
-        + perturbed_theta_v_at_cells_on_half_levels,
+        surface_value=astype(
+            reference_theta_at_cells_on_half_levels + perturbed_theta_v_at_cells_on_half_levels,
+            wpfloat,
+        ),
         surface_level=surface_level,
     )
 
@@ -193,7 +206,7 @@ def compute_perturbed_quantities_and_interpolation(
     time_extrapolation_parameter_for_exner: fa.CellKField[ta.vpfloat],
     current_exner: fa.CellKField[ta.wpfloat],
     reference_exner_at_cells_on_model_levels: fa.CellKField[ta.vpfloat],
-    inv_ddqz_z_full: fa.CellKField[ta.wpfloat],
+    inv_ddqz_z_full: fa.CellKField[ta.vpfloat],
     d2dexdz2_fac1_mc: fa.CellKField[ta.vpfloat],
     d2dexdz2_fac2_mc: fa.CellKField[ta.vpfloat],
     igradp_method: gtx.int32,

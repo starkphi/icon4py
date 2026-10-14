@@ -18,6 +18,7 @@ from icon4py.model.atmosphere.dycore.stencils.compute_contravariant_correction i
 from icon4py.model.atmosphere.dycore.stencils.compute_diagnostics_from_normal_wind import (
     _compute_horizontal_kinetic_energy,
     _interpolate_to_half_levels,
+    _interpolate_to_half_levels_vp,
 )
 from icon4py.model.atmosphere.dycore.stencils.compute_mass_flux import (
     _compute_mass_and_temperature_flux,
@@ -84,7 +85,7 @@ def _compute_horizontal_velocity_quantities_and_fluxes(
     )
 
     vn_on_half_levels = _interpolate_to_half_levels(vn, wgtfac_e)
-    tangential_wind_on_half_levels = _interpolate_to_half_levels(tangential_wind, wgtfac_e)
+    tangential_wind_on_half_levels = _interpolate_to_half_levels_vp(tangential_wind, wgtfac_e)
 
     contravariant_correction_at_edges_on_model_levels = concat_where(
         nflatlev <= dims.KDim,

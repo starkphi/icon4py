@@ -61,7 +61,7 @@ def _interpolate_contravariant_vertical_velocity_to_full_levels(
 @gtx.field_operator
 def _compute_horizontal_advection_of_w(
     w: fa.CellKHalfField[ta.wpfloat],
-    tangential_wind_on_half_levels: fa.EdgeKHalfField[ta.wpfloat],
+    tangential_wind_on_half_levels: fa.EdgeKHalfField[ta.vpfloat],
     vn_on_half_levels: fa.EdgeKHalfField[ta.vpfloat],
     c_intp: gtx.Field[gtx.Dims[dims.VertexDim, dims.V2CDim], ta.wpfloat],
     inv_dual_edge_length: fa.EdgeField[ta.wpfloat],
@@ -73,7 +73,7 @@ def _compute_horizontal_advection_of_w(
 
     horizontal_advection_of_w_at_edges_on_half_levels = (
         vn_on_half_levels_wp * inv_dual_edge_length * (w(E2C[0]) - w(E2C[1]))
-        + tangential_wind_on_half_levels
+        + astype(tangential_wind_on_half_levels, wpfloat)
         * inv_primal_edge_length
         * tangent_orientation
         * astype(w_at_vertices(E2V[0]) - w_at_vertices(E2V[1]), wpfloat)
@@ -254,13 +254,13 @@ def _compute_contravariant_corrected_w_and_cfl(
 @gtx.field_operator
 def _compute_advective_vertical_wind_tendency(
     w: fa.CellKHalfField[ta.wpfloat],
-    tangential_wind_on_half_levels: fa.EdgeKHalfField[ta.wpfloat],
+    tangential_wind_on_half_levels: fa.EdgeKHalfField[ta.vpfloat],
     vn_on_half_levels: fa.EdgeKHalfField[ta.vpfloat],
     c_intp: gtx.Field[gtx.Dims[dims.VertexDim, dims.V2CDim], ta.wpfloat],
     inv_dual_edge_length: fa.EdgeField[ta.wpfloat],
     inv_primal_edge_length: fa.EdgeField[ta.wpfloat],
     tangent_orientation: fa.EdgeField[ta.wpfloat],
-    contravariant_corrected_w_at_cells_on_half_levels: fa.CellKHalfField[ta.wpfloat],
+    contravariant_corrected_w_at_cells_on_half_levels: fa.CellKHalfField[ta.vpfloat],
     cfl_clipping: fa.CellKHalfField[bool],
     coeff1_dwdz: fa.CellKField[ta.vpfloat],
     coeff2_dwdz: fa.CellKField[ta.vpfloat],
@@ -319,7 +319,7 @@ def _compute_advective_vertical_wind_tendency(
 @gtx.field_operator
 def _compute_advection_in_vertical_momentum(
     w: fa.CellKHalfField[ta.wpfloat],
-    tangential_wind_on_half_levels: fa.EdgeKHalfField[ta.wpfloat],
+    tangential_wind_on_half_levels: fa.EdgeKHalfField[ta.vpfloat],
     vn_on_half_levels: fa.EdgeKHalfField[ta.vpfloat],
     contravariant_correction_at_cells_on_half_levels: fa.CellKHalfField[ta.vpfloat],
     coeff1_dwdz: fa.CellKField[ta.vpfloat],
@@ -444,7 +444,10 @@ def _compute_advective_normal_wind_tendency(
             wpfloat,
         )
     )
-    normal_wind_advective_tendency_wp = -(horizontal_advection + vertical_advection + coriolis_term)
+    # the kinetic-energy terms are vp in ICON (mo_velocity_advection.f90, ddt_vn_apc_pc)
+    normal_wind_advective_tendency_wp = -(
+        astype(horizontal_advection, wpfloat) + vertical_advection + coriolis_term
+    )
 
     return astype(normal_wind_advective_tendency_wp, vpfloat)
 

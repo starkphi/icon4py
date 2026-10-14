@@ -246,11 +246,11 @@ def _vertically_implicit_solver_at_predictor_step(
     n_lev: gtx.int32,
 ) -> tuple[
     fa.CellKHalfField[ta.wpfloat],
+    fa.CellKField[ta.wpfloat],
+    fa.CellKField[ta.wpfloat],
+    fa.CellKField[ta.wpfloat],
     fa.CellKField[ta.vpfloat],
     fa.CellKField[ta.vpfloat],
-    fa.CellKField[ta.wpfloat],
-    fa.CellKField[ta.wpfloat],
-    fa.CellKField[ta.wpfloat],
 ]:
     divergence_of_mass, divergence_of_theta_v = _compute_divergence_of_fluxes_of_rho_and_theta(
         geofac_div=geofac_div,
@@ -588,12 +588,12 @@ def _vertically_implicit_solver_at_corrector_step(
     n_lev: gtx.int32,
 ) -> tuple[
     fa.CellKHalfField[ta.wpfloat],
-    fa.CellKField[ta.vpfloat],
-    fa.CellKField[ta.vpfloat],
+    fa.CellKField[ta.wpfloat],
+    fa.CellKField[ta.wpfloat],
     fa.CellKField[ta.wpfloat],
     fa.CellKHalfField[ta.wpfloat],
     fa.CellKHalfField[ta.wpfloat],
-    fa.CellKField[ta.wpfloat],
+    fa.CellKField[ta.vpfloat],
 ]:
     divergence_of_mass, divergence_of_theta_v = _compute_divergence_of_fluxes_of_rho_and_theta(
         geofac_div=geofac_div,
