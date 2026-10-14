@@ -1035,22 +1035,22 @@ def test_compute_perturbed_quantities_and_interpolation(  # noqa: PLR0917 [too-m
 
     # local fields
     perturbed_rho_at_cells_on_model_levels = data_alloc.zero_field(
-        icon_grid, dims.CellDim, dims.KDim, allocator=backend
+        icon_grid, dims.CellDim, dims.KDim, dtype=vpfloat, allocator=backend
     )
     perturbed_theta_v_at_cells_on_model_levels = data_alloc.zero_field(
-        icon_grid, dims.CellDim, dims.KDim, allocator=backend
+        icon_grid, dims.CellDim, dims.KDim, dtype=vpfloat, allocator=backend
     )
     nonhydro_buoy_at_cells_on_half_levels = data_alloc.zero_field(
-        icon_grid, dims.CellDim, dims.KHalfDim, allocator=backend
+        icon_grid, dims.CellDim, dims.KHalfDim, dtype=vpfloat, allocator=backend
     )
     temporal_extrapolation_of_perturbed_exner = data_alloc.zero_field(
-        icon_grid, dims.CellDim, dims.KDim, extend={dims.KDim: 1}, allocator=backend
+        icon_grid, dims.CellDim, dims.KDim, extend={dims.KDim: 1}, dtype=vpfloat, allocator=backend
     )
     ddz_of_temporal_extrapolation_of_perturbed_exner_on_model_levels = data_alloc.zero_field(
-        icon_grid, dims.CellDim, dims.KDim, allocator=backend
+        icon_grid, dims.CellDim, dims.KDim, dtype=vpfloat, allocator=backend
     )
     d2dz2_of_temporal_extrapolation_of_perturbed_exner_on_model_levels = data_alloc.zero_field(
-        icon_grid, dims.CellDim, dims.KDim, allocator=backend
+        icon_grid, dims.CellDim, dims.KDim, dtype=vpfloat, allocator=backend
     )
 
     config = experiment.config.nonhydrostatic
@@ -1233,7 +1233,7 @@ def test_compute_interpolation_and_nonhydro_buoy(  # noqa: PLR0917 [too-many-pos
     rhotheta_implicit_weight_parameter = sp_init.wgt_nnew_rth()
 
     nonhydro_buoy_at_cells_on_half_levels = data_alloc.zero_field(
-        icon_grid, dims.CellDim, dims.KHalfDim, allocator=backend
+        icon_grid, dims.CellDim, dims.KHalfDim, dtype=vpfloat, allocator=backend
     )
 
     cell_domain = h_grid.domain(dims.CellDim)
@@ -1362,7 +1362,7 @@ def test_compute_rho_theta_pgrad_and_update_vn(  # noqa: PLR0917 [too-many-posit
     perturbed_rho_at_cells_on_model_levels = sp_stencil_init.z_rth_pr(0)
     perturbed_theta_v_at_cells_on_model_levels = sp_stencil_init.z_rth_pr(1)
     hydrostatic_correction = data_alloc.zero_field(
-        icon_grid, dims.EdgeDim, dims.KDim, allocator=backend
+        icon_grid, dims.EdgeDim, dims.KDim, dtype=vpfloat, allocator=backend
     )
     temporal_extrapolation_of_perturbed_exner = sp_stencil_init.z_exner_ex_pr()
     ddz_of_temporal_extrapolation_of_perturbed_exner_on_model_levels = (
