@@ -37,10 +37,10 @@ if TYPE_CHECKING:
 class DiagnosticStateNonHydro:
     """Data class containing diagnostic fields that are calculated in the dynamical core (SolveNonHydro)."""
 
-    # `max_vertical_cfl` stored as 0-d array of type ta.wpfloat (to be able to avoid cupy synchronization)
-    max_vertical_cfl: data_alloc.ScalarLikeArray[ta.wpfloat]  # type: ignore[type-var] # TODO(ricoh): find out what this is about
+    # `max_vertical_cfl` stored as 0-d array of type ta.vpfloat (to be able to avoid cupy synchronization)
+    max_vertical_cfl: data_alloc.ScalarLikeArray[ta.vpfloat]  # type: ignore[type-var] # TODO(ricoh): find out what this is about
     """
-    Declared as max_vcfl_dyn in ICON. Maximum vertical CFL number over all substeps.
+    Declared as max_vcfl_dyn in ICON (REAL(vp), mo_nonhydro_types.f90:265). Maximum vertical CFL number over all substeps.
     """
 
     tangential_wind: fa.EdgeKField[ta.vpfloat]
@@ -165,7 +165,7 @@ def initialize_solve_nonhydro_diagnostic_state(
             dtype=ta.vpfloat,
         ),
     )
-    max_vertical_cfl = data_alloc.scalar_like_array(0.0, allocator)
+    max_vertical_cfl = data_alloc.scalar_like_array(ta.vpfloat(0.0), allocator)
     theta_v_at_cells_on_half_levels = data_alloc.zero_field(
         grid,
         dims.CellDim,
