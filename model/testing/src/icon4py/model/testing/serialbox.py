@@ -1125,10 +1125,10 @@ class IconDiffusionExitSavepoint(IconSavepoint):
 
 class IconNonHydroInitSavepoint(IconSavepoint):
     def z_vt_ie(self):
-        return self._get_field("z_vt_ie", dims.EdgeDim, dims.KHalfDim)
+        return self._get_field("z_vt_ie", dims.EdgeDim, dims.KHalfDim, dtype=vpfloat)
 
     def z_kin_hor_e(self):
-        return self._get_field("z_kin_hor_e", dims.EdgeDim, dims.KDim)
+        return self._get_field("z_kin_hor_e", dims.EdgeDim, dims.KDim, dtype=vpfloat)
 
     def vn_ie(self):
         return self._get_field("vn_ie", dims.EdgeDim, dims.KHalfDim, dtype=vpfloat)
@@ -1235,10 +1235,10 @@ class IconNonHydroInitSavepoint(IconSavepoint):
         return self._get_field("vn_traj", dims.EdgeDim, dims.KDim)
 
     def z_dwdz_dd(self):
-        return self._get_field("z_dwdz_dd", dims.CellDim, dims.KDim)
+        return self._get_field("z_dwdz_dd", dims.CellDim, dims.KDim, dtype=vpfloat)
 
     def z_graddiv_vn(self):
-        return self._get_field("z_graddiv_vn", dims.EdgeDim, dims.KDim)
+        return self._get_field("z_graddiv_vn", dims.EdgeDim, dims.KDim, dtype=vpfloat)
 
     def z_theta_v_e(self):
         return self._get_field("z_theta_v_e", dims.EdgeDim, dims.KDim)
@@ -1247,7 +1247,7 @@ class IconNonHydroInitSavepoint(IconSavepoint):
         return self._get_field("z_rho_e", dims.EdgeDim, dims.KDim)
 
     def z_gradh_exner(self):
-        return self._get_field("z_gradh_exner", dims.EdgeDim, dims.KDim)
+        return self._get_field("z_gradh_exner", dims.EdgeDim, dims.KDim, dtype=vpfloat)
 
     def z_w_expl(self):
         return self._get_field("z_w_expl", dims.CellDim, dims.KHalfDim)
@@ -1306,13 +1306,15 @@ class NonHydroInitEdgeDiagnosticsUpdateVnSavepoint(IconSavepoint):
         return self._get_field("vt", dims.EdgeDim, dims.KDim, dtype=vpfloat)
 
     def z_rth_pr(self, ind: TwoIndex):
-        return self._get_field_component("z_rth_pr", ind, (dims.CellDim, dims.KDim))
+        return self._get_field_component("z_rth_pr", ind, (dims.CellDim, dims.KDim), dtype=vpfloat)
 
     def z_exner_ex_pr(self):
-        return self._get_field("z_exner_ex_pr", dims.CellDim, dims.KDim)
+        return self._get_field("z_exner_ex_pr", dims.CellDim, dims.KDim, dtype=vpfloat)
 
     def z_dexner_dz_c(self, ntnd: TimeIndex):
-        return self._get_field_component("z_dexner_dz_c", ntnd, (dims.CellDim, dims.KDim))
+        return self._get_field_component(
+            "z_dexner_dz_c", ntnd, (dims.CellDim, dims.KDim), dtype=vpfloat
+        )
 
     def theta_v(self):
         return self._get_field("theta_v_now", dims.CellDim, dims.KDim)
@@ -1321,10 +1323,12 @@ class NonHydroInitEdgeDiagnosticsUpdateVnSavepoint(IconSavepoint):
         return self._get_field("theta_v_ic", dims.CellDim, dims.KHalfDim)
 
     def z_dwdz_dd(self):
-        return self._get_field("z_dwdz_dd", dims.CellDim, dims.KDim)
+        return self._get_field("z_dwdz_dd", dims.CellDim, dims.KDim, dtype=vpfloat)
 
     def ddt_vn_apc_ntl(self, ntnd):
-        return self._get_field_component("ddt_vn_apc_pc", ntnd, (dims.EdgeDim, dims.KDim))
+        return self._get_field_component(
+            "ddt_vn_apc_pc", ntnd, (dims.EdgeDim, dims.KDim), dtype=vpfloat
+        )
 
     def ddt_vn_phy(self):
         return self._get_field("ddt_vn_phy", dims.EdgeDim, dims.KDim, dtype=vpfloat)
@@ -1336,7 +1340,7 @@ class NonHydroInitEdgeDiagnosticsUpdateVnSavepoint(IconSavepoint):
         return self._get_field("bdy_divdamp", dims.KDim)
 
     def z_hydro_corr(self):
-        return self._get_field("z_hydro_corr", dims.EdgeDim)
+        return self._get_field("z_hydro_corr", dims.EdgeDim, dtype=vpfloat)
 
     def z_graddiv2_vn(self):
         return self._get_field("z_graddiv2_vn", dims.EdgeDim, dims.KDim)
@@ -1351,10 +1355,10 @@ class NonHydroInitEdgeDiagnosticsUpdateVnSavepoint(IconSavepoint):
         return self._get_field("z_theta_v_e", dims.EdgeDim, dims.KDim)
 
     def z_gradh_exner(self):
-        return self._get_field("z_gradh_exner", dims.EdgeDim, dims.KDim)
+        return self._get_field("z_gradh_exner", dims.EdgeDim, dims.KDim, dtype=vpfloat)
 
     def z_graddiv_vn(self):
-        return self._get_field("z_graddiv_vn", dims.EdgeDim, dims.KDim)
+        return self._get_field("z_graddiv_vn", dims.EdgeDim, dims.KDim, dtype=vpfloat)
 
 
 class NonHydroInitVerticallyImplicitSolverSavepoint(IconSavepoint):
@@ -1379,7 +1383,7 @@ class NonHydroInitVerticallyImplicitSolverSavepoint(IconSavepoint):
         )
 
     def z_th_ddz_exner_c(self):
-        return self._get_field("z_th_ddz_exner_c", dims.CellDim, dims.KHalfDim)
+        return self._get_field("z_th_ddz_exner_c", dims.CellDim, dims.KHalfDim, dtype=vpfloat)
 
     def z_contr_w_fl_l(self):
         return self._get_field("z_contr_w_fl_l", dims.CellDim, dims.KHalfDim)
@@ -1447,7 +1451,7 @@ class NonHydroInitVerticallyImplicitSolverSavepoint(IconSavepoint):
         return self._get_field("theta_v_now", dims.CellDim, dims.KDim)
 
     def z_dwdz_dd(self):
-        return self._get_field("z_dwdz_dd", dims.CellDim, dims.KDim)
+        return self._get_field("z_dwdz_dd", dims.CellDim, dims.KDim, dtype=vpfloat)
 
     @IconSavepoint.optionally_registered(dtype=vpfloat)
     def exner_dyn_incr(self):
@@ -1465,7 +1469,7 @@ class IconDycoreInit30To38Savepoint(IconSavepoint):
         return self._get_field("z_vn_avg", dims.EdgeDim, dims.KDim)
 
     def z_graddiv_vn(self):
-        return self._get_field("z_graddiv_vn", dims.EdgeDim, dims.KDim)
+        return self._get_field("z_graddiv_vn", dims.EdgeDim, dims.KDim, dtype=vpfloat)
 
     def vn(self):
         return self._get_field("vn", dims.EdgeDim, dims.KDim)
@@ -1480,7 +1484,7 @@ class IconDycoreInit30To38Savepoint(IconSavepoint):
         return self._get_field("z_theta_v_e", dims.EdgeDim, dims.KDim)
 
     def z_vt_ie(self):
-        return self._get_field("z_vt_ie", dims.EdgeDim, dims.KHalfDim)
+        return self._get_field("z_vt_ie", dims.EdgeDim, dims.KHalfDim, dtype=vpfloat)
 
     def vn_ie(self):
         return self._get_field("vn_ie", dims.EdgeDim, dims.KHalfDim, dtype=vpfloat)
@@ -1492,10 +1496,10 @@ class IconDycoreInit30To38Savepoint(IconSavepoint):
         return self._get_field("z_theta_v_fl_e", dims.EdgeDim, dims.KDim)
 
     def z_kin_hor_e(self):
-        return self._get_field("z_kin_hor_e", dims.EdgeDim, dims.KDim)
+        return self._get_field("z_kin_hor_e", dims.EdgeDim, dims.KDim, dtype=vpfloat)
 
     def z_w_concorr_me(self):
-        return self._get_field("z_w_concorr_me", dims.EdgeDim, dims.KDim)
+        return self._get_field("z_w_concorr_me", dims.EdgeDim, dims.KDim, dtype=vpfloat)
 
 
 class IconDycoreExit30To38Savepoint(IconSavepoint):
@@ -1503,7 +1507,7 @@ class IconDycoreExit30To38Savepoint(IconSavepoint):
         return self._get_field("z_vn_avg", dims.EdgeDim, dims.KDim)
 
     def z_graddiv_vn(self):
-        return self._get_field("z_graddiv_vn", dims.EdgeDim, dims.KDim)
+        return self._get_field("z_graddiv_vn", dims.EdgeDim, dims.KDim, dtype=vpfloat)
 
     def vt(self):
         return self._get_field("vt", dims.EdgeDim, dims.KDim, dtype=vpfloat)
@@ -1518,13 +1522,13 @@ class IconDycoreExit30To38Savepoint(IconSavepoint):
         return self._get_field("vn_ie", dims.EdgeDim, dims.KHalfDim, dtype=vpfloat)
 
     def z_vt_ie(self):
-        return self._get_field("z_vt_ie", dims.EdgeDim, dims.KHalfDim)
+        return self._get_field("z_vt_ie", dims.EdgeDim, dims.KHalfDim, dtype=vpfloat)
 
     def z_kin_hor_e(self):
-        return self._get_field("z_kin_hor_e", dims.EdgeDim, dims.KDim)
+        return self._get_field("z_kin_hor_e", dims.EdgeDim, dims.KDim, dtype=vpfloat)
 
     def z_w_concorr_me(self):
-        return self._get_field("z_w_concorr_me", dims.EdgeDim, dims.KDim)
+        return self._get_field("z_w_concorr_me", dims.EdgeDim, dims.KDim, dtype=vpfloat)
 
     def vn_traj(self):
         return self._get_field("vn_traj", dims.EdgeDim, dims.KDim)
@@ -1535,7 +1539,7 @@ class IconDycoreExit30To38Savepoint(IconSavepoint):
 
 class IconNonHydroExitSavepoint(IconSavepoint):
     def z_exner_ex_pr(self):
-        return self._get_field("z_exner_ex_pr", dims.CellDim, dims.KDim)
+        return self._get_field("z_exner_ex_pr", dims.CellDim, dims.KDim, dtype=vpfloat)
 
     def rho_ic(self):
         return self._get_field("rho_ic", dims.CellDim, dims.KHalfDim)
@@ -1559,13 +1563,13 @@ class IconNonHydroExitSavepoint(IconSavepoint):
         return self._get_field("z_q", dims.CellDim, dims.KHalfDim)
 
     def z_graddiv_vn(self):
-        return self._get_field("z_graddiv_vn", dims.EdgeDim, dims.KDim)
+        return self._get_field("z_graddiv_vn", dims.EdgeDim, dims.KDim, dtype=vpfloat)
 
     def exner_pr(self):
         return self._get_field("exner_pr", dims.CellDim, dims.KDim)
 
     def z_kin_hor_e(self):
-        return self._get_field("z_kin_hor_e", dims.EdgeDim, dims.KDim)
+        return self._get_field("z_kin_hor_e", dims.EdgeDim, dims.KDim, dtype=vpfloat)
 
     def z_alpha(self):
         return self._get_field("z_alpha", dims.CellDim, dims.KHalfDim)
@@ -1610,28 +1614,30 @@ class IconNonHydroExitSavepoint(IconSavepoint):
         return self._get_field("exner_dyn_incr", dims.CellDim, dims.KDim, dtype=vpfloat)
 
     def z_exner_ic(self):
-        return self._get_field("z_exner_ic", dims.CellDim, dims.KHalfDim)
+        return self._get_field("z_exner_ic", dims.CellDim, dims.KHalfDim, dtype=vpfloat)
 
     def z_dexner_dz_c(self, ntnd: TimeIndex):
-        return self._get_field_component("z_dexner_dz_c", ntnd, (dims.CellDim, dims.KDim))
+        return self._get_field_component(
+            "z_dexner_dz_c", ntnd, (dims.CellDim, dims.KDim), dtype=vpfloat
+        )
 
     def z_rth_pr(self, ind: TwoIndex):
-        return self._get_field_component("z_rth_pr", ind, (dims.CellDim, dims.KDim))
+        return self._get_field_component("z_rth_pr", ind, (dims.CellDim, dims.KDim), dtype=vpfloat)
 
     def z_grad_rth(self, ind: FourIndex):
         return self._get_field_component("z_grad_rth", ind, (dims.CellDim, dims.KDim))
 
     def z_th_ddz_exner_c(self):
-        return self._get_field("z_th_ddz_exner_c", dims.CellDim, dims.KHalfDim)
+        return self._get_field("z_th_ddz_exner_c", dims.CellDim, dims.KHalfDim, dtype=vpfloat)
 
     def z_gradh_exner(self):
-        return self._get_field("z_gradh_exner", dims.EdgeDim, dims.KDim)
+        return self._get_field("z_gradh_exner", dims.EdgeDim, dims.KDim, dtype=vpfloat)
 
     def z_hydro_corr(self):
-        return self._get_field("z_hydro_corr", dims.EdgeDim, dims.KDim)
+        return self._get_field("z_hydro_corr", dims.EdgeDim, dims.KDim, dtype=vpfloat)
 
     def z_theta_v_pr_ic(self):
-        return self._get_field("z_theta_v_pr_ic", dims.CellDim, dims.KHalfDim)
+        return self._get_field("z_theta_v_pr_ic", dims.CellDim, dims.KHalfDim, dtype=vpfloat)
 
     def vt(self):
         return self._get_field("vt", dims.EdgeDim, dims.KDim, dtype=vpfloat)
@@ -1652,10 +1658,10 @@ class IconNonHydroExitSavepoint(IconSavepoint):
         return self._get_field("vn_ie", dims.EdgeDim, dims.KHalfDim, dtype=vpfloat)
 
     def z_vt_ie(self):
-        return self._get_field("z_vt_ie", dims.EdgeDim, dims.KHalfDim)
+        return self._get_field("z_vt_ie", dims.EdgeDim, dims.KHalfDim, dtype=vpfloat)
 
     def z_w_concorr_me(self):
-        return self._get_field("z_w_concorr_me", dims.EdgeDim, dims.KDim)
+        return self._get_field("z_w_concorr_me", dims.EdgeDim, dims.KDim, dtype=vpfloat)
 
     def w_concorr_c(self):
         return self._get_field("w_concorr_c", dims.CellDim, dims.KHalfDim, dtype=vpfloat)
@@ -1664,7 +1670,7 @@ class IconNonHydroExitSavepoint(IconSavepoint):
         return self._get_field("z_theta_v_fl_e", dims.EdgeDim, dims.KDim)
 
     def z_dwdz_dd(self):
-        return self._get_field("z_dwdz_dd", dims.CellDim, dims.KDim)
+        return self._get_field("z_dwdz_dd", dims.CellDim, dims.KDim, dtype=vpfloat)
 
 
 class NonHydroExitEdgeDiagnosticsUpdateVnSavepoint(IconSavepoint):
@@ -1675,13 +1681,13 @@ class NonHydroExitEdgeDiagnosticsUpdateVnSavepoint(IconSavepoint):
         return self._get_field("z_theta_v_e", dims.EdgeDim, dims.KDim)
 
     def z_gradh_exner(self):
-        return self._get_field("z_gradd_exner", dims.EdgeDim, dims.KDim)
+        return self._get_field("z_gradd_exner", dims.EdgeDim, dims.KDim, dtype=vpfloat)
 
     def vn(self):
         return self._get_field("vn_new", dims.EdgeDim, dims.KDim)
 
     def z_graddiv_vn(self):
-        return self._get_field("z_graddiv_vn", dims.EdgeDim, dims.KDim)
+        return self._get_field("z_graddiv_vn", dims.EdgeDim, dims.KDim, dtype=vpfloat)
 
     def z_graddiv2_vn(self):
         return self._get_field("z_graddiv2_vn", dims.EdgeDim, dims.KDim)
@@ -1732,13 +1738,13 @@ class IconVelocityInitSavepoint(IconSavepoint):
         return self._get_field("w", dims.CellDim, dims.KHalfDim)
 
     def z_vt_ie(self):
-        return self._get_field("z_vt_ie", dims.EdgeDim, dims.KHalfDim)
+        return self._get_field("z_vt_ie", dims.EdgeDim, dims.KHalfDim, dtype=vpfloat)
 
     def z_kin_hor_e(self):
-        return self._get_field("z_kin_hor_e", dims.EdgeDim, dims.KDim)
+        return self._get_field("z_kin_hor_e", dims.EdgeDim, dims.KDim, dtype=vpfloat)
 
     def z_w_concorr_me(self):
-        return self._get_field("z_w_concorr_me", dims.EdgeDim, dims.KDim)
+        return self._get_field("z_w_concorr_me", dims.EdgeDim, dims.KDim, dtype=vpfloat)
 
     def w_concorr_c(self):
         return self._get_field("w_concorr_c", dims.CellDim, dims.KHalfDim, dtype=vpfloat)
@@ -1776,10 +1782,10 @@ class IconVelocityExitSavepoint(IconSavepoint):
         return self._get_field("w_concorr_c", dims.CellDim, dims.KHalfDim, dtype=vpfloat)
 
     def z_vt_ie(self):
-        return self._get_field("z_vt_ie", dims.EdgeDim, dims.KHalfDim)
+        return self._get_field("z_vt_ie", dims.EdgeDim, dims.KHalfDim, dtype=vpfloat)
 
     def z_w_concorr_me(self):
-        return self._get_field("z_w_concorr_me", dims.EdgeDim, dims.KDim)
+        return self._get_field("z_w_concorr_me", dims.EdgeDim, dims.KDim, dtype=vpfloat)
 
     def z_w_concorr_mc(self):
         return self._get_field("z_w_concorr_mc", dims.CellDim, dims.KDim)
@@ -1803,7 +1809,7 @@ class IconVelocityExitSavepoint(IconSavepoint):
         return self._get_field("vcfl_dsl", dims.CellDim, dims.KDim)
 
     def z_kin_hor_e(self):
-        return self._get_field("z_kin_hor_e", dims.EdgeDim, dims.KDim)
+        return self._get_field("z_kin_hor_e", dims.EdgeDim, dims.KDim, dtype=vpfloat)
 
 
 class IconJabwExitSavepoint(IconSavepoint):
