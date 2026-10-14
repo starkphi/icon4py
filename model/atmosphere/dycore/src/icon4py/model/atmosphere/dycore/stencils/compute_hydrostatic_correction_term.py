@@ -25,8 +25,6 @@ def _compute_hydrostatic_correction_term(
     grav_o_cpd: wpfloat,
 ) -> fa.EdgeKField[vpfloat]:
     """Formerly known as _mo_solve_nonhydro_stencil_21."""
-    zdiff_gradp_wp = zdiff_gradp  # astype(zdiff_gradp, wpfloat) # TODO(): fix this cast
-
     theta_v_0 = theta_v(E2C[0])(as_offset(Koff, ikoffset[dims.E2CDim(0)]))
     theta_v_1 = theta_v(E2C[1])(as_offset(Koff, ikoffset[dims.E2CDim(1)]))
 
@@ -52,11 +50,15 @@ def _compute_hydrostatic_correction_term(
 
     z_theta_0 = (
         theta_v_0
-        + zdiff_gradp_wp[dims.E2CDim(0)] * (theta_v_ic_0 - theta_v_ic_p1_0) * inv_ddqz_z_full_0_wp
+        + astype(zdiff_gradp[dims.E2CDim(0)], wpfloat)
+        * (theta_v_ic_0 - theta_v_ic_p1_0)
+        * inv_ddqz_z_full_0_wp
     )
     z_theta_1 = (
         theta_v_1
-        + zdiff_gradp_wp[dims.E2CDim(1)] * (theta_v_ic_1 - theta_v_ic_p1_1) * inv_ddqz_z_full_1_wp
+        + astype(zdiff_gradp[dims.E2CDim(1)], wpfloat)
+        * (theta_v_ic_1 - theta_v_ic_p1_1)
+        * inv_ddqz_z_full_1_wp
     )
     z_hydro_corr_wp = (
         grav_o_cpd

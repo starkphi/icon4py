@@ -673,21 +673,17 @@ class Diffusion:
         self.diff_multfac_n2w = data_alloc.zero_field(
             self._grid, dims.KHalfDim, dtype=ta.wpfloat, allocator=allocator
         )
-        # TODO(pstark): smag_limit, enh_smag_fac and diff_multfac_smag are consumed as vpfloat by the
-        #  stencils but produced as wpfloat by diffusion_utils; switch to vpfloat once the producers do.
         self.smag_limit = data_alloc.zero_field(
-            self._grid, dims.KDim, dtype=ta.wpfloat, allocator=allocator
+            self._grid, dims.KDim, dtype=ta.vpfloat, allocator=allocator
         )
         self.enh_smag_fac = data_alloc.zero_field(
-            self._grid, dims.KDim, dtype=ta.wpfloat, allocator=allocator
+            self._grid, dims.KDim, dtype=ta.vpfloat, allocator=allocator
         )
-        # TODO(pstark): u_vert and v_vert are consumed as vpfloat by the stencils but produced as
-        #  wpfloat by mo_intp_rbf_rbf_vec_interpol_vertex.
         self.u_vert = data_alloc.zero_field(
-            self._grid, dims.VertexDim, dims.KDim, dtype=ta.wpfloat, allocator=allocator
+            self._grid, dims.VertexDim, dims.KDim, dtype=ta.vpfloat, allocator=allocator
         )
         self.v_vert = data_alloc.zero_field(
-            self._grid, dims.VertexDim, dims.KDim, dtype=ta.wpfloat, allocator=allocator
+            self._grid, dims.VertexDim, dims.KDim, dtype=ta.vpfloat, allocator=allocator
         )
         self.kh_smag_e = data_alloc.zero_field(
             self._grid, dims.EdgeDim, dims.KDim, dtype=ta.vpfloat, allocator=allocator
@@ -696,7 +692,7 @@ class Diffusion:
             self._grid, dims.EdgeDim, dims.KDim, dtype=ta.wpfloat, allocator=allocator
         )
         self.diff_multfac_smag = data_alloc.zero_field(
-            self._grid, dims.KDim, dtype=ta.wpfloat, allocator=allocator
+            self._grid, dims.KDim, dtype=ta.vpfloat, allocator=allocator
         )
         self.w_tmp = data_alloc.zero_field(
             self._grid, dims.CellDim, dims.KHalfDim, dtype=ta.wpfloat, allocator=allocator
@@ -757,7 +753,7 @@ class Diffusion:
                 self._grid, dims.KDim, dtype=ta.wpfloat, allocator=self._allocator
             )
             smag_limit = data_alloc.zero_field(
-                self._grid, dims.KDim, dtype=ta.wpfloat, allocator=self._allocator
+                self._grid, dims.KDim, dtype=ta.vpfloat, allocator=self._allocator
             )
             self.setup_fields_for_initial_step(
                 self._params.K4,
@@ -791,7 +787,7 @@ class Diffusion:
         """
         diff_multfac_vn, smag_limit, smag_offset = self._smag_values_for_run(initial_run)
 
-        self.scale_k(self.enh_smag_fac, dtime, self.diff_multfac_smag)
+        self.scale_k(self.enh_smag_fac, vpfloat(dtime), self.diff_multfac_smag)
 
         log.debug("rbf interpolation 1: start")
         self.mo_intp_rbf_rbf_vec_interpol_vertex(

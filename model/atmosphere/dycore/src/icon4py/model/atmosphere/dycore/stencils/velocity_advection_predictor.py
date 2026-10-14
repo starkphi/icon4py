@@ -15,6 +15,7 @@ from icon4py.model.atmosphere.dycore.stencils.compute_contravariant_correction i
 from icon4py.model.atmosphere.dycore.stencils.compute_diagnostics_from_normal_wind import (
     _compute_horizontal_kinetic_energy,
     _interpolate_to_half_levels,
+    _interpolate_to_half_levels_vp,
 )
 from icon4py.model.atmosphere.dycore.stencils.extrapolate_at_top import _extrapolate_at_top
 from icon4py.model.atmosphere.dycore.stencils.velocity_advection_terms import (
@@ -63,7 +64,7 @@ def _compute_diagnostics_from_normal_wind(
     )
 
     tangential_wind_on_half_levels = (
-        _interpolate_to_half_levels(tangential_wind, wgtfac_e)
+        _interpolate_to_half_levels_vp(tangential_wind, wgtfac_e)
         if not skip_compute_predictor_vertical_advection
         else tangential_wind_on_half_levels
     )
@@ -251,7 +252,7 @@ def _compute_velocity_advection_in_predictor_step(
 @gtx.program(grid_type=gtx.GridType.UNSTRUCTURED)
 def compute_velocity_advection_in_predictor_step(
     tangential_wind: fa.EdgeKField[ta.vpfloat],
-    tangential_wind_on_half_levels: fa.EdgeKHalfField[ta.wpfloat],
+    tangential_wind_on_half_levels: fa.EdgeKHalfField[ta.vpfloat],
     vn_on_half_levels: fa.EdgeKHalfField[ta.vpfloat],
     horizontal_kinetic_energy_at_edges_on_model_levels: fa.EdgeKField[ta.vpfloat],
     contravariant_correction_at_edges_on_model_levels: fa.EdgeKField[ta.vpfloat],
