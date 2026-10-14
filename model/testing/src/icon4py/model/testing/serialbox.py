@@ -885,7 +885,7 @@ class MetricSavepoint(IconSavepoint):
         return self._get_field("ddxn_z_full", dims.EdgeDim, dims.KDim, dtype=vpfloat)
 
     def ddxt_z_full(self):
-        return self._get_field("ddxt_z_full", dims.EdgeDim, dims.KDim)
+        return self._get_field("ddxt_z_full", dims.EdgeDim, dims.KDim, dtype=vpfloat)
 
     def theta_ref_mc(self):
         return self._get_field("theta_ref_mc", dims.CellDim, dims.KDim, dtype=vpfloat)
@@ -1182,10 +1182,14 @@ class IconNonHydroInitSavepoint(IconSavepoint):
         return self._get_field("w_concorr_c", dims.CellDim, dims.KHalfDim, dtype=vpfloat)
 
     def ddt_vn_apc_pc(self, ntnd):
-        return self._get_field_component("ddt_vn_apc_pc", ntnd, (dims.EdgeDim, dims.KDim))
+        return self._get_field_component(
+            "ddt_vn_apc_pc", ntnd, (dims.EdgeDim, dims.KDim), dtype=vpfloat
+        )
 
     def ddt_w_adv_pc(self, ntnd):
-        return self._get_field_component("ddt_w_adv_pc", ntnd, (dims.CellDim, dims.KHalfDim))
+        return self._get_field_component(
+            "ddt_w_adv_pc", ntnd, (dims.CellDim, dims.KHalfDim), dtype=vpfloat
+        )
 
     def grf_tend_w(self):
         return self._get_field("grf_tend_w", dims.CellDim, dims.KHalfDim)
@@ -1370,7 +1374,9 @@ class NonHydroInitVerticallyImplicitSolverSavepoint(IconSavepoint):
         return self._get_field("z_w_expl", dims.CellDim, dims.KHalfDim)
 
     def ddt_w_adv_pc(self, ntnd: TimeIndex):
-        return self._get_field_component("ddt_w_adv_pc", ntnd, (dims.CellDim, dims.KHalfDim))
+        return self._get_field_component(
+            "ddt_w_adv_pc", ntnd, (dims.CellDim, dims.KHalfDim), dtype=vpfloat
+        )
 
     def z_th_ddz_exner_c(self):
         return self._get_field("z_th_ddz_exner_c", dims.CellDim, dims.KHalfDim)
@@ -1704,10 +1710,14 @@ class IconVelocityInitSavepoint(IconSavepoint):
         return self.serializer.read("scalfac_exdiff", self.savepoint).astype(wpfloat)[0]
 
     def ddt_vn_apc_pc(self, ntnd: TimeIndex):
-        return self._get_field_component("ddt_vn_apc_pc", ntnd, (dims.EdgeDim, dims.KDim))
+        return self._get_field_component(
+            "ddt_vn_apc_pc", ntnd, (dims.EdgeDim, dims.KDim), dtype=vpfloat
+        )
 
     def ddt_w_adv_pc(self, ntnd: TimeIndex):
-        return self._get_field_component("ddt_w_adv_pc", ntnd, (dims.CellDim, dims.KHalfDim))
+        return self._get_field_component(
+            "ddt_w_adv_pc", ntnd, (dims.CellDim, dims.KHalfDim), dtype=vpfloat
+        )
 
     def vn(self):
         return self._get_field("vn", dims.EdgeDim, dims.KDim)
