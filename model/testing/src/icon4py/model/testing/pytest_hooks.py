@@ -48,8 +48,7 @@ def pytest_configure(config):
         "level(name): marks test as unit, integration, or validation tests. Validation tests are excluded by default and must be explicitly requested with --level=validation",
     )
     config.addinivalue_line(
-        "markers",
-        "single_precision_ready: intended to run if single or mixed precision is selected",
+        "markers", "single_precision_ready: intended to run if single precision is selected"
     )
 
     # add parenthesis around original k_option just in case
@@ -58,9 +57,8 @@ def pytest_configure(config):
         m_option.append("datatest")
     if config.getoption("--datatest-skip"):
         m_option.append("not datatest")
-    if os.environ.get("ICON4PY_FLOAT_PRECISION", "double").lower() in ("single", "mixed"):
-        # if precision is set to single or mixed per env variable, only run tests marked as
-        # single_precision_ready (mixed uses the single tolerances, see test_utils.vp_is_dp)
+    if os.environ.get("ICON4PY_FLOAT_PRECISION", "double").lower() == "single":
+        # if precision is set to single per env variable, only run tests marked as single_precision_ready
         m_option.append("single_precision_ready")
     config.option.markexpr = " and ".join(m_option[::-1])
 
