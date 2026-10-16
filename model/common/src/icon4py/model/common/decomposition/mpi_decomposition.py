@@ -327,16 +327,33 @@ class GHexMultiNodeExchange(decomp_defs.ExchangeRuntime):
         )
 
         applied_patterns = [self._get_applied_pattern(dim, f) for f in fields]
+        # The GHEX Python binding takes patterns of one value type per call, so mixed precision
+        # (wp and vp fields in one exchange) needs one GHEX exchange per dtype. A communication
+        # object allows only one exchange in flight, so all but the last are finished here.
+        patterns_by_dtype: dict[np.dtype, list[Any]] = {}
+        for f, pattern in zip(fields, applied_patterns, strict=True):
+            dtype = f.ndarray.dtype if isinstance(f, gtx.Field) else f.dtype
+            patterns_by_dtype.setdefault(dtype, []).append(pattern)
+        *earlier_groups, last_group = patterns_by_dtype.values()
         if not ghex.__config__["gpu"]:
             # No GPU support fall back to the regular exchange function.
-            handle = self._comm.exchange(applied_patterns)
+            for patterns in earlier_groups:
+                self._comm.exchange(patterns).wait()
+            handle = self._comm.exchange(last_group)
         else:
             assert stream is not None
+            for patterns in earlier_groups:
+                self._comm.schedule_exchange(patterns=patterns, stream=stream).schedule_wait(
+                    stream
+                )
             handle = self._comm.schedule_exchange(
-                patterns=applied_patterns,
+                patterns=last_group,
                 stream=stream,
             )
-        log.debug(f"exchange for {len(fields)} fields of dimension ='{dim.value}' initiated.")
+        log.debug(
+            f"exchange for {len(fields)} fields of dimension ='{dim.value}' initiated "
+            f"({len(patterns_by_dtype)} GHEX exchange(s))."
+        )
         return MultiNodeResult(handle, applied_patterns)
 
     def exchange(
