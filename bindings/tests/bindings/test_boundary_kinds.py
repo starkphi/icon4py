@@ -360,8 +360,9 @@ def _expected_copies() -> set[str]:
         icon_is_single = config.ICON_PRECISION == "single" or (
             icon_vp_is_single and name in ICON_VP_ARGUMENTS[fun_name]
         )
-        # icon4py computes every float field in single or in double, never mixed, here
-        compute_is_single = ta.precision == "single"
+        compute_is_single = ta.precision == "single" or (
+            ta.precision == "mixed" and name in ICON_VP_ARGUMENTS[fun_name]
+        )
         if icon_is_single != compute_is_single:
             expected.add(f"{fun_name}.{name}")
     return expected
