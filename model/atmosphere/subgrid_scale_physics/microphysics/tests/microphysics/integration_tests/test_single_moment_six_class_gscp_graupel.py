@@ -174,7 +174,7 @@ def test_graupel(
     test_utils.assert_dallclose(
         new_qr,
         exit_savepoint.qr().asnumpy(),
-        atol=1.0e-12 if test_utils.wp_is_dp else 3e-10,
+        atol=1.0e-12 if test_utils.vp_is_dp else 3e-10,
     )
     test_utils.assert_dallclose(
         new_qi,
@@ -189,7 +189,7 @@ def test_graupel(
     test_utils.assert_dallclose(
         new_qg,
         exit_savepoint.qg().asnumpy(),
-        atol=1.0e-12 if test_utils.wp_is_dp else 4e-11,
+        atol=1.0e-12 if test_utils.vp_is_dp else 4e-11,
     )
 
     test_utils.assert_dallclose(

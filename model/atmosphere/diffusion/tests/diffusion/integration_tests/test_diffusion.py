@@ -240,7 +240,7 @@ def _verify_init_values_against_savepoint(
 ):
     dtime = savepoint.dtime()
 
-    scalar_rtol = 0.0 if test_utils.wp_is_dp else test_utils.STD_RTOL
+    scalar_rtol = 0.0 if test_utils.vp_is_dp else test_utils.STD_RTOL
     test_utils.assert_dallclose(
         savepoint.nudgezone_diff(), diffusion_granule.nudgezone_diff, rtol=scalar_rtol
     )
@@ -284,7 +284,7 @@ def _verify_init_values_against_savepoint(
     test_utils.assert_dallclose(
         diffusion_granule.diff_multfac_n2w.asnumpy()[:-1],
         savepoint.diff_multfac_n2w(),
-        atol=0.0 if test_utils.wp_is_dp else 2e-7,
+        atol=0.0 if test_utils.vp_is_dp else 2e-7,
         err_msg="diff_multfac_n2w",
     )
     test_utils.assert_dallclose(

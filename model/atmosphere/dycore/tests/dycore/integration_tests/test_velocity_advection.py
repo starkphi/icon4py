@@ -36,7 +36,7 @@ from ..fixtures import *  # noqa: F403
 
 ATOL = 2 * constants.VP_EPS  # for double ≈ 4.44e-16, for single ≈ 2.38e-7
 RTOL = 20 * constants.WP_EPS  # for double ≈ 4.44e-15, for single ≈ 2.38e-6
-MAX_CFL_RTOL = 0.0 if test_utils.wp_is_dp else RTOL  # max vertical CFL not bit-identical in single
+MAX_CFL_RTOL = 0.0 if test_utils.vp_is_dp else RTOL  # max vertical CFL not bit-identical in single
 
 log = logging.getLogger(__name__)
 
@@ -263,14 +263,14 @@ def test_velocity_predictor_step(  # noqa: PLR0917 [too-many-positional-argument
     test_utils.assert_dallclose(
         diagnostic_state.tangential_wind.asnumpy(),
         icon_result_vt,
-        atol=1.0e-14 if test_utils.wp_is_dp else 1.5e-5,
+        atol=1.0e-14 if test_utils.vp_is_dp else 1.5e-5,
         err_msg="vt",
     )
 
     test_utils.assert_dallclose(
         diagnostic_state.vn_on_half_levels.asnumpy(),
         icon_result_vn_ie,
-        atol=1.0e-14 if test_utils.wp_is_dp else 8e-6,
+        atol=1.0e-14 if test_utils.vp_is_dp else 8e-6,
         err_msg="vn_ie",
     )
 
@@ -282,7 +282,7 @@ def test_velocity_predictor_step(  # noqa: PLR0917 [too-many-positional-argument
         icon_result_w_concorr_c[
             start_cell_nudging:, vertical_params.nflatlev + 1 : icon_grid.num_levels
         ],
-        atol=1.0e-15 if test_utils.wp_is_dp else 1e-6,
+        atol=1.0e-15 if test_utils.vp_is_dp else 1e-6,
         err_msg="w_concorr_c",
     )
 
@@ -291,15 +291,15 @@ def test_velocity_predictor_step(  # noqa: PLR0917 [too-many-positional-argument
             start_cell_nudging:, :
         ],
         icon_result_ddt_w_adv_pc[start_cell_nudging:, :],
-        atol=5.0e-16 if test_utils.wp_is_dp else 8e-7,
-        rtol=1.0e-10 if test_utils.wp_is_dp else test_utils.STD_RTOL,
+        atol=5.0e-16 if test_utils.vp_is_dp else 8e-7,
+        rtol=1.0e-10 if test_utils.vp_is_dp else test_utils.STD_RTOL,
         err_msg="ddt_w_adv_pc predictor",
     )
 
     test_utils.assert_dallclose(
         diagnostic_state.normal_wind_advective_tendency.predictor.asnumpy(),
         icon_result_ddt_vn_apc_pc,
-        atol=1.0e-15 if test_utils.wp_is_dp else 5e-7,
+        atol=1.0e-15 if test_utils.vp_is_dp else 5e-7,
         err_msg="ddt_vn_apc_pc predictor",
     )
 
@@ -310,15 +310,15 @@ def test_velocity_predictor_step(  # noqa: PLR0917 [too-many-positional-argument
     test_utils.assert_dallclose(
         tangential_wind_on_half_levels.asnumpy()[:, first_comparable_half_level:],
         savepoint_velocity_exit.z_vt_ie().asnumpy()[:, first_comparable_half_level:],
-        rtol=1.0e-14 if test_utils.wp_is_dp else test_utils.STD_RTOL,
-        atol=1.0e-14 if test_utils.wp_is_dp else 1.5e-5,
+        rtol=1.0e-14 if test_utils.vp_is_dp else test_utils.STD_RTOL,
+        atol=1.0e-14 if test_utils.vp_is_dp else 1.5e-5,
         err_msg="z_vt_ie",
     )
 
     test_utils.assert_dallclose(
         horizontal_kinetic_energy_at_edges_on_model_levels.asnumpy(),
         savepoint_velocity_exit.z_kin_hor_e().asnumpy(),
-        rtol=1.0e-14 if test_utils.wp_is_dp else test_utils.STD_RTOL,
+        rtol=1.0e-14 if test_utils.vp_is_dp else test_utils.STD_RTOL,
         atol=1.0e-14,
         err_msg="z_kin_hor_e",
     )
@@ -326,8 +326,8 @@ def test_velocity_predictor_step(  # noqa: PLR0917 [too-many-positional-argument
     test_utils.assert_dallclose(
         contravariant_correction_at_edges_on_model_levels.asnumpy(),
         savepoint_velocity_exit.z_w_concorr_me().asnumpy(),
-        rtol=1.0e-15 if test_utils.wp_is_dp else test_utils.STD_RTOL,
-        atol=1.0e-15 if test_utils.wp_is_dp else 1e-6,
+        rtol=1.0e-15 if test_utils.vp_is_dp else test_utils.STD_RTOL,
+        atol=1.0e-15 if test_utils.vp_is_dp else 1e-6,
         err_msg="z_w_concorr_me",
     )
 
@@ -504,13 +504,13 @@ def test_velocity_corrector_step(  # noqa: PLR0917 [too-many-positional-argument
             start_cell_nudging:, :
         ],
         icon_result_ddt_w_adv_pc[start_cell_nudging:, :],
-        atol=5.0e-16 if test_utils.wp_is_dp else 5e-7,
+        atol=5.0e-16 if test_utils.vp_is_dp else 5e-7,
         err_msg="ddt_w_adv_pc corrector",
     )
     test_utils.assert_dallclose(
         diagnostic_state.normal_wind_advective_tendency.corrector.asnumpy(),
         icon_result_ddt_vn_apc_pc,
-        atol=5.0e-16 if test_utils.wp_is_dp else 4e-7,
+        atol=5.0e-16 if test_utils.vp_is_dp else 4e-7,
         err_msg="ddt_vn_apc_pc corrector",
     )
 
