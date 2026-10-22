@@ -53,3 +53,24 @@ generate_test_child_pipeline:
 trigger_test_child_pipeline:
   extends: [.trigger_test_child_pipeline]
   rules: *only_merge_queue
+
+# Mixed precision (wpfloat=f64, vpfloat=f32) is not in the generated test matrix
+# (FLOAT_PRECISIONS above); this one datatest keeps it from breaking silently.
+# Only the 12:00:20 case: in the 12:00:10 case one vn_traj element exceeds the
+# mixed atol. The --collect-only step fails if the selection matches no test.
+test_model_mixed_precision_aarch64:
+  extends: [.test_model_aarch64]
+  stage: test
+  needs: [build_image_aarch64]
+  rules:
+    - if: $CI_COMMIT_BRANCH =~ /^gh-readonly-queue/
+      variables:
+        SLURM_TIMELIMIT: '00:30:00'
+    - when: never
+  variables:
+    FLOAT_PRECISION: "mixed"
+    BACKEND: "gtfn_cpu"
+    MIXED_SELECTION: "test_run_solve_nonhydro_multi_step and 12:00:20 and not benchmark_only"
+  script:
+    - nox -s "test_model-${PYVERSION_SHORT}(datatest, dycore)" -- --backend=$BACKEND -k "$MIXED_SELECTION" --collect-only -q
+    - nox -s "test_model-${PYVERSION_SHORT}(datatest, dycore)" -- --backend=$BACKEND -k "$MIXED_SELECTION"
