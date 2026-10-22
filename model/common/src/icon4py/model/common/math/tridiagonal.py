@@ -78,7 +78,7 @@ def _solve_tridiagonal_matrix_forward_sweep_on_half_levels_mixed_precision(
     b: vpfloat,
     c: vpfloat,
     d: wpfloat,
-) -> tuple[wpfloat, wpfloat]:
+) -> tuple[vpfloat, wpfloat]:
     """The matrix coefficients and ``q`` in vpfloat, ``d'`` in wpfloat."""
     q_kminus1 = astype(state_kminus1[0], vpfloat)
     d_prime_kminus1 = state_kminus1[1]
