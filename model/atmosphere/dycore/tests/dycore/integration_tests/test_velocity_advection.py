@@ -35,8 +35,9 @@ from ..fixtures import *  # noqa: F403
 
 
 ATOL = 2 * constants.VP_EPS  # for double ≈ 4.44e-16, for single ≈ 2.38e-7
-RTOL = 20 * constants.WP_EPS  # for double ≈ 4.44e-15, for single ≈ 2.38e-6
-MAX_CFL_RTOL = 0.0 if test_utils.vp_is_dp else RTOL  # max vertical CFL not bit-identical in single
+RTOL = 20 * constants.VP_EPS  # for double ≈ 4.44e-15, for single ≈ 2.38e-6
+# max vertical CFL not bit-identical in single or mixed
+MAX_CFL_RTOL = 0.0 if test_utils.vp_is_dp else RTOL
 
 log = logging.getLogger(__name__)
 
