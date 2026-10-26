@@ -54,10 +54,8 @@ trigger_test_child_pipeline:
   extends: [.trigger_test_child_pipeline]
   rules: *only_merge_queue
 
-# Mixed precision (wpfloat=f64, vpfloat=f32) is not in the generated test matrix
-# (FLOAT_PRECISIONS above); this one datatest keeps it from breaking silently.
-# Only the 12:00:20 case: in the 12:00:10 case one vn_traj element exceeds the
-# mixed atol. The --collect-only step fails if the selection matches no test.
+# Mixed precision is not in FLOAT_PRECISIONS. 12:00:10 is left out: one vn_traj element
+# exceeds the atol. --collect-only fails the job if the selection matches no test.
 test_model_mixed_precision_aarch64:
   extends: [.test_model_aarch64]
   stage: test

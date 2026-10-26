@@ -330,10 +330,10 @@ class GHexMultiNodeExchange(decomp_defs.ExchangeRuntime):
         )
 
         applied_patterns = [self._get_applied_pattern(dim, f) for f in fields]
-        # The GHEX Python binding takes patterns of one value type per call, so mixed precision
-        # (wp and vp fields in one exchange) needs one GHEX exchange per dtype. A communication
-        # object allows only one exchange in flight, so all but the last are finished here.
-        # GHEX builds with a double+float overload do both in one exchange instead.
+        # GHEX's Python binding takes one value type per call: one exchange per dtype, all but the
+        # last finished here (one exchange in flight per communication object). GHEX's C++
+        # `exchange` already packs mixed types into one message; it only lacks the binding (and,
+        # on GPU, a multi-range `schedule_exchange`). The one-call path below uses it if present.
         patterns_by_dtype: dict[np.dtype, list[Any]] = {}
         for f, pattern in zip(fields, applied_patterns, strict=True):
             dtype = f.ndarray.dtype if isinstance(f, gtx.Field) else f.dtype
