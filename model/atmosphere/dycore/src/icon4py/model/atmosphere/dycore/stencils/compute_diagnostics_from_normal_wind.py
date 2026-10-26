@@ -32,10 +32,8 @@ def _interpolate_to_half_levels_vp(
     x: fa.EdgeKField[ta.vpfloat],
     wgtfac_e: fa.EdgeKHalfField[ta.vpfloat],
 ) -> fa.EdgeKHalfField[ta.vpfloat]:
-    # z_vt_ie (mo_velocity_advection.f90:264-266) computes the sum in wp because of the
-    # `1._wp`, but its first product in vp. Here both products are wp: casting the product
-    # instead of its operands blocks the FMA contraction of `_interpolate_to_half_levels`
-    # and changes double-precision results.
+    # sum in wp as z_vt_ie (mo_velocity_advection.f90:264-266); cast the operands, not the
+    # product, or double loses the FMA contraction of `_interpolate_to_half_levels`
     wgtfac_e_wp = astype(wgtfac_e, wpfloat)
     x_wp = astype(x, wpfloat)
     x_ie_wp = wgtfac_e_wp * x_wp(dims.KHalfDim + 0.5) + (wpfloat("1.0") - wgtfac_e_wp) * x_wp(
