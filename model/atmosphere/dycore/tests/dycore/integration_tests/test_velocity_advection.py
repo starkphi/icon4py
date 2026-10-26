@@ -34,10 +34,10 @@ from .. import utils
 from ..fixtures import *  # noqa: F403
 
 
-ATOL = 2 * constants.VP_EPS  # for double ≈ 4.44e-16, for single ≈ 2.38e-7
-RTOL = 20 * constants.VP_EPS  # for double ≈ 4.44e-15, for single ≈ 2.38e-6
-# max vertical CFL not bit-identical in single or mixed
-MAX_CFL_RTOL = 0.0 if test_utils.vp_is_dp else RTOL
+MAX_CFL_RTOL = (
+    0.0 if test_utils.vp_is_dp else 20 * constants.VP_EPS
+)  # max vertical CFL not bit-identical in single or mixed
+
 
 log = logging.getLogger(__name__)
 
@@ -51,8 +51,6 @@ def _compare_cfl(
     horizontal_end: int,
     vertical_start: int,
     vertical_end: int,
-    rtol: vpfloat = RTOL,
-    atol: vpfloat = ATOL,
 ) -> None:
     cfl_clipping_mask = np.where(np.abs(vertical_cfl) > 0.0, True, False)
     assert (
@@ -60,8 +58,12 @@ def _compare_cfl(
         == icon_result_cfl_clipping[horizontal_start:horizontal_end, vertical_start:vertical_end]
     ).all()
 
-    assert np.abs(vertical_cfl[horizontal_start:horizontal_end, :]).max() == pytest.approx(
-        icon_result_max_vcfl_dyn, rel=MAX_CFL_RTOL, abs=0.0
+    test_utils.assert_dallclose(
+        np.abs(vertical_cfl[horizontal_start:horizontal_end, :]).max(),
+        icon_result_max_vcfl_dyn,
+        rtol=MAX_CFL_RTOL,
+        atol=0.0,
+        err_msg="max_cfl",
     )
 
 
@@ -332,8 +334,12 @@ def test_velocity_predictor_step(  # noqa: PLR0917 [too-many-positional-argument
         err_msg="z_w_concorr_me",
     )
 
-    assert float(diagnostic_state.max_vertical_cfl) == pytest.approx(
-        icon_result_max_vcfl_dyn, rel=MAX_CFL_RTOL, abs=0.0
+    test_utils.assert_dallclose(
+        float(diagnostic_state.max_vertical_cfl),
+        icon_result_max_vcfl_dyn,
+        rtol=MAX_CFL_RTOL,
+        atol=0.0,
+        err_msg="max_cfl",
     )
 
     _compare_cfl(
@@ -515,8 +521,12 @@ def test_velocity_corrector_step(  # noqa: PLR0917 [too-many-positional-argument
         err_msg="ddt_vn_apc_pc corrector",
     )
 
-    assert float(diagnostic_state.max_vertical_cfl) == pytest.approx(
-        icon_result_max_vcfl_dyn, rel=MAX_CFL_RTOL, abs=0.0
+    test_utils.assert_dallclose(
+        float(diagnostic_state.max_vertical_cfl),
+        icon_result_max_vcfl_dyn,
+        rtol=MAX_CFL_RTOL,
+        atol=0.0,
+        err_msg="max_cfl",
     )
 
     _compare_cfl(
