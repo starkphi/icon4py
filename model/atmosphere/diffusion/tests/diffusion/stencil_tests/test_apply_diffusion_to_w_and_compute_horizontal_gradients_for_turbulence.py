@@ -15,6 +15,7 @@ from icon4py.model.atmosphere.diffusion.stencils.apply_diffusion_to_w_and_comput
 )
 from icon4py.model.common import dimension as dims
 from icon4py.model.common.grid import base, horizontal as h_grid
+from icon4py.model.common.type_alias import wp_icon
 from icon4py.model.testing import stencil_tests
 
 from .test_apply_nabla2_to_w import apply_nabla2_to_w_numpy
@@ -148,10 +149,10 @@ class TestApplyDiffusionToWAndComputeHorizontalGradientsForTurbulence(stencil_te
         diff_multfac_n2w = data_alloc.random_field(dims.KHalfDim)
         area = data_alloc.random_field(dims.CellDim)
         geofac_n2s = data_alloc.random_field(dims.CellDim, dims.C2E2CODim)
-        w_old = data_alloc.random_field(dims.CellDim, dims.KHalfDim)
+        w_old = data_alloc.random_field(dims.CellDim, dims.KHalfDim, dtype=wp_icon)
         diff_multfac_w = 5.0
 
-        w = data_alloc.zero_field(dims.CellDim, dims.KHalfDim)
+        w = data_alloc.zero_field(dims.CellDim, dims.KHalfDim, dtype=wp_icon)
         dwdx = data_alloc.random_field(dims.CellDim, dims.KHalfDim)
         dwdy = data_alloc.random_field(dims.CellDim, dims.KHalfDim)
 

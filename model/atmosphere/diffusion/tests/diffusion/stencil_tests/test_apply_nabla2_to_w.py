@@ -14,7 +14,7 @@ import pytest
 from icon4py.model.atmosphere.diffusion.stencils.apply_nabla2_to_w import apply_nabla2_to_w
 from icon4py.model.common import dimension as dims
 from icon4py.model.common.grid import base
-from icon4py.model.common.type_alias import vpfloat, wpfloat
+from icon4py.model.common.type_alias import vpfloat, wp_icon, wpfloat
 from icon4py.model.testing import stencil_tests
 
 
@@ -68,7 +68,7 @@ class TestMoApplyNabla2ToW(stencil_tests.StencilTest):
         area = data_alloc.random_field(dims.CellDim, dtype=wpfloat)
         z_nabla2_c = data_alloc.random_field(dims.CellDim, dims.KHalfDim, dtype=vpfloat)
         geofac_n2s = data_alloc.random_field(dims.CellDim, dims.C2E2CODim, dtype=wpfloat)
-        w = data_alloc.random_field(dims.CellDim, dims.KHalfDim, dtype=wpfloat)
+        w = data_alloc.random_field(dims.CellDim, dims.KHalfDim, dtype=wp_icon)
         return dict(
             area=area,
             z_nabla2_c=z_nabla2_c,

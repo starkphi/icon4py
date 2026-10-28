@@ -14,7 +14,7 @@ from icon4py.model.atmosphere.diffusion.stencils.update_theta_and_exner import (
 )
 from icon4py.model.common import dimension as dims
 from icon4py.model.common.grid import base
-from icon4py.model.common.type_alias import vpfloat, wpfloat
+from icon4py.model.common.type_alias import vpfloat, wp_icon, wpfloat
 from icon4py.model.testing import stencil_tests
 
 
@@ -54,8 +54,8 @@ class TestUpdateThetaAndExner(stencil_tests.StencilTest):
     def input_data(data_alloc: stencil_tests.DataAllocationWrapper, grid: base.Grid) -> dict:
         z_temp = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=vpfloat)
         area = data_alloc.random_field(dims.CellDim, dtype=wpfloat)
-        theta_v = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=wpfloat)
-        exner = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=wpfloat)
+        theta_v = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=wp_icon)
+        exner = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=wp_icon)
         rd_o_cvd = vpfloat("5.0")
 
         return dict(

@@ -14,7 +14,7 @@ import pytest
 from icon4py.model.atmosphere.diffusion.stencils.apply_diffusion_to_vn import apply_diffusion_to_vn
 from icon4py.model.common import dimension as dims
 from icon4py.model.common.grid import base, horizontal as h_grid
-from icon4py.model.common.type_alias import vpfloat, wpfloat
+from icon4py.model.common.type_alias import vpfloat, wp_icon, wpfloat
 from icon4py.model.testing import stencil_tests
 
 from .test_apply_nabla2_and_nabla4_global_to_vn import apply_nabla2_and_nabla4_global_to_vn_numpy
@@ -138,7 +138,7 @@ class TestApplyDiffusionToVn(stencil_tests.StencilTest):
         kh_smag_e = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=vpfloat)
         z_nabla2_e = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=wpfloat)
         diff_multfac_vn = data_alloc.random_field(dims.KDim, dtype=wpfloat)
-        vn = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=wpfloat)
+        vn = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=wp_icon)
         nudgecoeff_e = data_alloc.random_field(dims.EdgeDim, dtype=wpfloat)
 
         limited_area = grid.limited_area if hasattr(grid, "limited_area") else True

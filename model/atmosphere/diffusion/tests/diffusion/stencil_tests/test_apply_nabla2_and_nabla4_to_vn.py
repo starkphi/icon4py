@@ -14,7 +14,7 @@ from icon4py.model.atmosphere.diffusion.stencils.apply_nabla2_and_nabla4_to_vn i
 )
 from icon4py.model.common import dimension as dims
 from icon4py.model.common.grid import base
-from icon4py.model.common.type_alias import vpfloat, wpfloat
+from icon4py.model.common.type_alias import vpfloat, wp_icon, wpfloat
 from icon4py.model.testing import stencil_tests
 
 
@@ -51,7 +51,7 @@ class TestApplyNabla2AndNabla4ToVn(stencil_tests.StencilTest):
         z_nabla4_e2 = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=vpfloat)
         diff_multfac_vn = data_alloc.random_field(dims.KDim, dtype=wpfloat)
         nudgecoeff_e = data_alloc.random_field(dims.EdgeDim, dtype=wpfloat)
-        vn = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=wpfloat)
+        vn = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=wp_icon)
         nudgezone_diff = vpfloat("9.0")
 
         return dict(
