@@ -16,7 +16,7 @@ from icon4py.model.atmosphere.diffusion.stencils.apply_diffusion_to_theta_and_ex
 )
 from icon4py.model.common import dimension as dims
 from icon4py.model.common.grid import base, horizontal as h_grid
-from icon4py.model.common.type_alias import vpfloat, wp_icon
+from icon4py.model.common.type_alias import vpfloat, wp_icon, wpfloat
 from icon4py.model.testing import stencil_tests
 
 from .test_calculate_nabla2_for_z import calculate_nabla2_for_z_numpy
@@ -83,10 +83,10 @@ class TestApplyDiffusionToThetaAndExner(stencil_tests.StencilTest):
 
     @stencil_tests.input_data_fixture
     def input_data(data_alloc: stencil_tests.DataAllocationWrapper, grid: base.Grid):
-        kh_smag_e = data_alloc.random_field(dims.EdgeDim, dims.KDim)
-        inv_dual_edge_length = data_alloc.random_field(dims.EdgeDim)
+        kh_smag_e = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=vpfloat)
+        inv_dual_edge_length = data_alloc.random_field(dims.EdgeDim, dtype=wpfloat)
         theta_v_in = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=wp_icon)
-        geofac_div = data_alloc.random_field(dims.CellDim, dims.C2EDim)
+        geofac_div = data_alloc.random_field(dims.CellDim, dims.C2EDim, dtype=wpfloat)
         zd_vertoffset_buffer = np.zeros(
             (grid.size[dims.CellDim], grid.size[dims.C2E2CDim], grid.size[dims.KDim]),
             dtype=gtx.int32,
@@ -103,11 +103,11 @@ class TestApplyDiffusionToThetaAndExner(stencil_tests.StencilTest):
             zd_vertoffset_buffer, dims.CellDim, dims.C2E2CDim, dims.KDim
         )
 
-        zd_diffcoef = data_alloc.random_field(dims.CellDim, dims.KDim)
-        geofac_n2s_c = data_alloc.random_field(dims.CellDim)
-        geofac_n2s_nbh = data_alloc.random_field(dims.CellDim, dims.C2E2CDim)
-        vcoef = data_alloc.random_field(dims.CellDim, dims.C2E2CDim, dims.KDim)
-        area = data_alloc.random_field(dims.CellDim)
+        zd_diffcoef = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=wpfloat)
+        geofac_n2s_c = data_alloc.random_field(dims.CellDim, dtype=wpfloat)
+        geofac_n2s_nbh = data_alloc.random_field(dims.CellDim, dims.C2E2CDim, dtype=wpfloat)
+        vcoef = data_alloc.random_field(dims.CellDim, dims.C2E2CDim, dims.KDim, dtype=wpfloat)
+        area = data_alloc.random_field(dims.CellDim, dtype=wpfloat)
         theta_v = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=wp_icon)
         exner = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=wp_icon)
         rd_o_cvd = vpfloat("5.0")
