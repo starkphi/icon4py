@@ -30,16 +30,16 @@ class PrognosticState:
     once per model time step while these fields are advanced once per dynamics substep.
     """
 
-    rho: fa.CellKField[ta.wpfloat]  # density, rho(nproma, nlev, nblks_c) [kg/m^3]
-    w: fa.CellKHalfField[ta.wpfloat]  # vertical_wind field, w(nproma, nlevp1, nblks_c) [m/s]
+    rho: fa.CellKField[ta.wp_icon]  # density, rho(nproma, nlev, nblks_c) [kg/m^3]
+    w: fa.CellKHalfField[ta.wp_icon]  # vertical_wind field, w(nproma, nlevp1, nblks_c) [m/s]
     vn: fa.EdgeKField[
-        ta.wpfloat
+        ta.wp_icon
     ]  # horizontal wind normal to edges, vn(nproma, nlev, nblks_e)  [m/s]
-    exner: fa.CellKField[ta.wpfloat]  # exner function, exner(nrpoma, nlev, nblks_c)
-    theta_v: fa.CellKField[ta.wpfloat]  # virtual temperature, (nproma, nlev, nlbks_c) [K]
+    exner: fa.CellKField[ta.wp_icon]  # exner function, exner(nrpoma, nlev, nblks_c)
+    theta_v: fa.CellKField[ta.wp_icon]  # virtual temperature, (nproma, nlev, nlbks_c) [K]
 
     @property
-    def w_1(self) -> fa.CellField[ta.wpfloat]:
+    def w_1(self) -> fa.CellField[ta.wp_icon]:
         return self.w[dims.KDim(0)]
 
 
@@ -53,34 +53,34 @@ def initialize_prognostic_state(
         dims.CellDim,
         dims.KDim,
         allocator=allocator,
-        dtype=ta.wpfloat,
+        dtype=ta.wp_icon,
     )
     w = data_alloc.zero_field(
         grid,
         dims.CellDim,
         dims.KHalfDim,
         allocator=allocator,
-        dtype=ta.wpfloat,
+        dtype=ta.wp_icon,
     )
     vn = data_alloc.zero_field(
         grid,
         dims.EdgeDim,
         dims.KDim,
         allocator=allocator,
-        dtype=ta.wpfloat,
+        dtype=ta.wp_icon,
     )
     exner = data_alloc.zero_field(
         grid,
         dims.CellDim,
         dims.KDim,
         allocator=allocator,
-        dtype=ta.wpfloat,
+        dtype=ta.wp_icon,
     )
     theta_v = data_alloc.zero_field(
         grid,
         dims.CellDim,
         dims.KDim,
         allocator=allocator,
-        dtype=ta.wpfloat,
+        dtype=ta.wp_icon,
     )
     return PrognosticState(rho=rho, w=w, vn=vn, exner=exner, theta_v=theta_v)

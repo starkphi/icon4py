@@ -6,19 +6,20 @@
 # Please, refer to the LICENSE file in the root directory.
 # SPDX-License-Identifier: BSD-3-Clause
 import gt4py.next as gtx
+from gt4py.next import astype
 
 from icon4py.model.common import dimension as dims, field_type_aliases as fa
-from icon4py.model.common.type_alias import wpfloat
+from icon4py.model.common.type_alias import wp_icon, wpfloat
 
 
 @gtx.field_operator
 def _apply_nabla2_to_vn_in_lateral_boundary(
     z_nabla2_e: fa.EdgeKField[wpfloat],
     area_edge: fa.EdgeField[wpfloat],
-    vn: fa.EdgeKField[wpfloat],
+    vn: fa.EdgeKField[wp_icon],
     fac_bdydiff_v: wpfloat,
-) -> fa.EdgeKField[wpfloat]:
-    vn_wp = vn + (area_edge * fac_bdydiff_v * z_nabla2_e)
+) -> fa.EdgeKField[wp_icon]:
+    vn_wp = vn + astype(area_edge * fac_bdydiff_v * z_nabla2_e, wp_icon)
     return vn_wp
 
 
@@ -26,7 +27,7 @@ def _apply_nabla2_to_vn_in_lateral_boundary(
 def apply_nabla2_to_vn_in_lateral_boundary(
     z_nabla2_e: fa.EdgeKField[wpfloat],
     area_edge: fa.EdgeField[wpfloat],
-    vn: fa.EdgeKField[wpfloat],
+    vn: fa.EdgeKField[wp_icon],
     fac_bdydiff_v: wpfloat,
     horizontal_start: gtx.int32,
     horizontal_end: gtx.int32,

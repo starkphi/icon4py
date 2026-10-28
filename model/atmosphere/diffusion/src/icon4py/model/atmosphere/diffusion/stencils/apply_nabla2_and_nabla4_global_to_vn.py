@@ -9,7 +9,7 @@ import gt4py.next as gtx
 from gt4py.next import astype
 
 from icon4py.model.common import dimension as dims, field_type_aliases as fa
-from icon4py.model.common.type_alias import vpfloat, wpfloat
+from icon4py.model.common.type_alias import vpfloat, wp_icon, wpfloat
 
 
 @gtx.field_operator
@@ -19,12 +19,13 @@ def _apply_nabla2_and_nabla4_global_to_vn(
     z_nabla2_e: fa.EdgeKField[wpfloat],
     z_nabla4_e2: fa.EdgeKField[vpfloat],
     diff_multfac_vn: fa.KField[wpfloat],
-    vn: fa.EdgeKField[wpfloat],
-) -> fa.EdgeKField[wpfloat]:
+    vn: fa.EdgeKField[wp_icon],
+) -> fa.EdgeKField[wp_icon]:
     kh_smag_e_wp, z_nabla4_e2_wp = astype((kh_smag_e, z_nabla4_e2), wpfloat)
 
-    vn_wp = vn + area_edge * (
-        kh_smag_e_wp * z_nabla2_e - diff_multfac_vn * z_nabla4_e2_wp * area_edge
+    vn_wp = vn + astype(
+        area_edge * (kh_smag_e_wp * z_nabla2_e - diff_multfac_vn * z_nabla4_e2_wp * area_edge),
+        wp_icon,
     )
     return vn_wp
 
@@ -36,7 +37,7 @@ def apply_nabla2_and_nabla4_global_to_vn(
     z_nabla2_e: fa.EdgeKField[wpfloat],
     z_nabla4_e2: fa.EdgeKField[vpfloat],
     diff_multfac_vn: fa.KField[wpfloat],
-    vn: fa.EdgeKField[wpfloat],
+    vn: fa.EdgeKField[wp_icon],
     horizontal_start: gtx.int32,
     horizontal_end: gtx.int32,
     vertical_start: gtx.int32,

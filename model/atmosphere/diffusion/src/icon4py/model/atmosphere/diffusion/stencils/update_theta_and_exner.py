@@ -9,22 +9,24 @@ import gt4py.next as gtx
 from gt4py.next import astype
 
 from icon4py.model.common import dimension as dims, field_type_aliases as fa
-from icon4py.model.common.type_alias import vpfloat, wpfloat
+from icon4py.model.common.type_alias import vpfloat, wp_icon, wpfloat
 
 
 @gtx.field_operator
 def _update_theta_and_exner(
     z_temp: fa.CellKField[vpfloat],
     area: fa.CellField[wpfloat],
-    theta_v: fa.CellKField[wpfloat],
-    exner: fa.CellKField[wpfloat],
+    theta_v: fa.CellKField[wp_icon],
+    exner: fa.CellKField[wp_icon],
     rd_o_cvd: vpfloat,
-) -> tuple[fa.CellKField[wpfloat], fa.CellKField[wpfloat]]:
-    rd_o_cvd_wp, z_temp_wp = astype((rd_o_cvd, z_temp), wpfloat)
+) -> tuple[fa.CellKField[wp_icon], fa.CellKField[wp_icon]]:
+    z_temp_wp = astype(z_temp, wpfloat)
+    # exner in wp_icon: theta_v / z_theta - 1 cancels
+    rd_o_cvd_wp_icon = astype(rd_o_cvd, wp_icon)
 
     z_theta = theta_v
-    theta_v = theta_v + (area * z_temp_wp)
-    exner = exner * (wpfloat("1.0") + rd_o_cvd_wp * (theta_v / z_theta - wpfloat("1.0")))
+    theta_v = theta_v + astype(area * z_temp_wp, wp_icon)
+    exner = exner * (wp_icon("1.0") + rd_o_cvd_wp_icon * (theta_v / z_theta - wp_icon("1.0")))
     return theta_v, exner
 
 
@@ -32,8 +34,8 @@ def _update_theta_and_exner(
 def update_theta_and_exner(
     z_temp: fa.CellKField[vpfloat],
     area: fa.CellField[wpfloat],
-    theta_v: fa.CellKField[wpfloat],
-    exner: fa.CellKField[wpfloat],
+    theta_v: fa.CellKField[wp_icon],
+    exner: fa.CellKField[wp_icon],
     rd_o_cvd: vpfloat,
     horizontal_start: gtx.int32,
     horizontal_end: gtx.int32,

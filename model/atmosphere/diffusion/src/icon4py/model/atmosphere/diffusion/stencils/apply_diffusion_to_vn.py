@@ -19,7 +19,7 @@ from icon4py.model.atmosphere.diffusion.stencils.apply_nabla2_to_vn_in_lateral_b
 )
 from icon4py.model.atmosphere.diffusion.stencils.calculate_nabla4 import _calculate_nabla4
 from icon4py.model.common import dimension as dims, field_type_aliases as fa
-from icon4py.model.common.type_alias import vpfloat, wpfloat
+from icon4py.model.common.type_alias import vpfloat, wp_icon, wpfloat
 
 
 @gtx.field_operator
@@ -35,12 +35,12 @@ def _apply_diffusion_to_vn(
     kh_smag_e: fa.EdgeKField[vpfloat],
     diff_multfac_vn: fa.KField[wpfloat],
     nudgecoeff_e: fa.EdgeField[wpfloat],
-    vn: fa.EdgeKField[wpfloat],
+    vn: fa.EdgeKField[wp_icon],
     nudgezone_diff: vpfloat,
     fac_bdydiff_v: wpfloat,
     start_2nd_nudge_line_idx_e: gtx.int32,
     limited_area: bool,
-) -> fa.EdgeKField[wpfloat]:
+) -> fa.EdgeKField[wp_icon]:
     z_nabla4_e2 = _calculate_nabla4(
         u_vert,
         v_vert,
@@ -98,7 +98,7 @@ def apply_diffusion_to_vn(
     kh_smag_e: fa.EdgeKField[vpfloat],
     diff_multfac_vn: fa.KField[wpfloat],
     nudgecoeff_e: fa.EdgeField[wpfloat],
-    vn: fa.EdgeKField[wpfloat],
+    vn: fa.EdgeKField[wp_icon],
     nudgezone_diff: vpfloat,
     fac_bdydiff_v: wpfloat,
     start_2nd_nudge_line_idx_e: gtx.int32,

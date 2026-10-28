@@ -48,7 +48,7 @@ from icon4py.model.atmosphere.diffusion.diffusion_states import (
 )
 from icon4py.model.common import dimension as dims, field_type_aliases as fa, model_backends
 from icon4py.model.common.states.prognostic_state import PrognosticState
-from icon4py.model.common.type_alias import vpfloat, wpfloat
+from icon4py.model.common.type_alias import vpfloat, wp_icon, wpfloat
 
 
 logger = logging.getLogger(__name__)
@@ -271,11 +271,11 @@ def diffusion_init(  # noqa: PLR0917 [too-many-positional-arguments]
 
 @icon4py_export.export
 def diffusion_run(  # noqa: PLR0917 [too-many-positional-arguments]
-    w: WpInOut[gtx.Field[gtx.Dims[dims.CellDim, dims.KHalfDim], wpfloat]],
-    vn: WpInOut[fa.EdgeKField[wpfloat]],
-    exner: WpInOut[fa.CellKField[wpfloat]],
-    theta_v: WpInOut[fa.CellKField[wpfloat]],
-    rho: WpIn[fa.CellKField[wpfloat]],
+    w: WpInOut[gtx.Field[gtx.Dims[dims.CellDim, dims.KHalfDim], wp_icon]],
+    vn: WpInOut[fa.EdgeKField[wp_icon]],
+    exner: WpInOut[fa.CellKField[wp_icon]],
+    theta_v: WpInOut[fa.CellKField[wp_icon]],
+    rho: WpIn[fa.CellKField[wp_icon]],
     hdef_ic: VpInOut[gtx.Field[gtx.Dims[dims.CellDim, dims.KHalfDim], vpfloat] | None],
     div_ic: VpInOut[gtx.Field[gtx.Dims[dims.CellDim, dims.KHalfDim], vpfloat] | None],
     dwdx: VpInOut[gtx.Field[gtx.Dims[dims.CellDim, dims.KHalfDim], vpfloat] | None],

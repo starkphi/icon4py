@@ -48,6 +48,7 @@ from icon4py.model.common.decomposition import definitions as decomposition
 from icon4py.model.common.grid import horizontal as h_grid, icon as icon_grid, vertical as v_grid
 from icon4py.model.common.interpolation.stencils.mo_intp_rbf_rbf_vec_interpol_vertex import (
     mo_intp_rbf_rbf_vec_interpol_vertex,
+    mo_intp_rbf_rbf_vec_interpol_vertex_from_wp_icon,
 )
 from icon4py.model.common.math.stencils import generic_math_operations
 from icon4py.model.common.model_options import setup_program
@@ -564,6 +565,23 @@ class Diffusion:
             },
             offset_provider=self._grid.connectivities,
         )
+        self.mo_intp_rbf_rbf_vec_interpol_vertex_from_wp_icon = setup_program(
+            backend=backend,
+            program=mo_intp_rbf_rbf_vec_interpol_vertex_from_wp_icon,
+            constant_args={
+                "ptr_coeff_1": self._interpolation_state.rbf_coeff_1,
+                "ptr_coeff_2": self._interpolation_state.rbf_coeff_2,
+            },
+            horizontal_sizes={
+                "horizontal_start": self._vertex_start_lateral_boundary_level_2,
+                "horizontal_end": self._vertex_end_local,
+            },
+            vertical_sizes={
+                "vertical_start": gtx.int32(0),
+                "vertical_end": gtx.int32(self._grid.num_levels),
+            },
+            offset_provider=self._grid.connectivities,
+        )
 
         self.calculate_nabla2_and_smag_coefficients_for_vn = setup_program(
             backend=backend,
@@ -691,15 +709,15 @@ class Diffusion:
             },
             offset_provider=self._grid.connectivities,
         )
-        self.copy_field_on_cell_k = setup_program(
+        self.copy_wp_icon_field_on_cell_k = setup_program(
             backend=backend,
-            program=generic_math_operations.copy_field_on_cell_k,
+            program=generic_math_operations.copy_wp_icon_field_on_cell_k,
             horizontal_sizes={"horizontal_start": 0, "horizontal_end": self._grid.num_cells},
             vertical_sizes={"vertical_start": 0, "vertical_end": self._grid.num_levels},
         )
-        self.copy_field_on_cell_khalf = setup_program(
+        self.copy_wp_icon_field_on_cell_khalf = setup_program(
             backend=backend,
-            program=generic_math_operations.copy_field_on_cell_khalf,
+            program=generic_math_operations.copy_wp_icon_field_on_cell_khalf,
             horizontal_sizes={"horizontal_start": 0, "horizontal_end": self._grid.num_cells},
             vertical_sizes={"vertical_start": 0, "vertical_end": self._grid.num_levels + 1},
         )
@@ -787,10 +805,10 @@ class Diffusion:
             self._grid, dims.EdgeDim, allocator=allocator
         )
         self.w_tmp = data_alloc.zero_field(
-            self._grid, dims.CellDim, dims.KHalfDim, dtype=ta.wpfloat, allocator=allocator
+            self._grid, dims.CellDim, dims.KHalfDim, dtype=ta.wp_icon, allocator=allocator
         )
         self.theta_v_tmp = data_alloc.zero_field(
-            self._grid, dims.CellDim, dims.KDim, dtype=ta.wpfloat, allocator=allocator
+            self._grid, dims.CellDim, dims.KDim, dtype=ta.wp_icon, allocator=allocator
         )
 
     def _determine_horizontal_domains(self) -> None:
@@ -867,7 +885,7 @@ class Diffusion:
         self.scale_k(self.enh_smag_fac, dtime, self.diff_multfac_smag)
 
         log.debug("rbf interpolation 1: start")
-        self.mo_intp_rbf_rbf_vec_interpol_vertex(
+        self.mo_intp_rbf_rbf_vec_interpol_vertex_from_wp_icon(
             p_e_in=prognostic_state.vn,
             p_u_out=self.u_vert,
             p_v_out=self.v_vert,
@@ -971,7 +989,7 @@ class Diffusion:
             "running stencils 07 08 09 10 (apply_diffusion_to_w_and_compute_horizontal_gradients_for_turbulence): start"
         )
         # TODO(halungge): get rid of this copying. So far passing an empty buffer instead did not verify?
-        self.copy_field_on_cell_khalf(field=prognostic_state.w, output_field=self.w_tmp)
+        self.copy_wp_icon_field_on_cell_khalf(field=prognostic_state.w, output_field=self.w_tmp)
 
         self.apply_diffusion_to_w_and_compute_horizontal_gradients_for_turbulence(
             w_old=self.w_tmp,
@@ -1003,7 +1021,7 @@ class Diffusion:
                 "running stencils 11 12 (calculate_enhanced_diffusion_coefficients_for_grid_point_cold_pools): end"
             )
             log.debug("running stencil 13 to 16 (apply_diffusion_to_theta_and_exner): start")
-            self.copy_field_on_cell_k(
+            self.copy_wp_icon_field_on_cell_k(
                 field=prognostic_state.theta_v, output_field=self.theta_v_tmp
             )  # TODO(): write in a way that we can avoid the copy
             self.apply_diffusion_to_theta_and_exner(

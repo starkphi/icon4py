@@ -9,26 +9,26 @@ import gt4py.next as gtx
 from gt4py.next import astype, broadcast
 
 from icon4py.model.common import dimension as dims, field_type_aliases as fa
-from icon4py.model.common.type_alias import vpfloat, wpfloat
+from icon4py.model.common.type_alias import vpfloat, wp_icon, wpfloat
 
 
 @gtx.field_operator
 def _apply_nabla2_to_w_in_upper_damping_layer(
-    w: fa.CellKHalfField[wpfloat],
+    w: fa.CellKHalfField[wp_icon],
     diff_multfac_n2w: fa.KHalfField[wpfloat],
     cell_area: fa.CellField[wpfloat],
     z_nabla2_c: fa.CellKHalfField[vpfloat],
-) -> fa.CellKHalfField[wpfloat]:
+) -> fa.CellKHalfField[wp_icon]:
     z_nabla2_c_wp = astype(z_nabla2_c, wpfloat)
     cell_area_tmp = broadcast(cell_area, (dims.CellDim, dims.KHalfDim))
 
-    w_wp = w + diff_multfac_n2w * cell_area_tmp * z_nabla2_c_wp
+    w_wp = w + astype(diff_multfac_n2w * cell_area_tmp * z_nabla2_c_wp, wp_icon)
     return w_wp
 
 
 @gtx.program(grid_type=gtx.GridType.UNSTRUCTURED)
 def apply_nabla2_to_w_in_upper_damping_layer(
-    w: fa.CellKHalfField[wpfloat],
+    w: fa.CellKHalfField[wp_icon],
     diff_multfac_n2w: fa.KHalfField[wpfloat],
     cell_area: fa.CellField[wpfloat],
     z_nabla2_c: fa.CellKHalfField[vpfloat],

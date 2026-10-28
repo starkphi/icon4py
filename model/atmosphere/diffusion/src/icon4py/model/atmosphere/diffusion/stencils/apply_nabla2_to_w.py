@@ -10,7 +10,7 @@ from gt4py.next import astype, neighbor_sum
 
 from icon4py.model.common import dimension as dims, field_type_aliases as fa
 from icon4py.model.common.dimension import C2E2CO
-from icon4py.model.common.type_alias import vpfloat, wpfloat
+from icon4py.model.common.type_alias import vpfloat, wp_icon, wpfloat
 
 
 @gtx.field_operator
@@ -18,13 +18,16 @@ def _apply_nabla2_to_w(
     area: fa.CellField[wpfloat],
     z_nabla2_c: fa.CellKHalfField[vpfloat],
     geofac_n2s: gtx.Field[gtx.Dims[dims.CellDim, dims.C2E2CODim], wpfloat],
-    w: fa.CellKHalfField[wpfloat],
+    w: fa.CellKHalfField[wp_icon],
     diff_multfac_w: wpfloat,
-) -> fa.CellKHalfField[wpfloat]:
+) -> fa.CellKHalfField[wp_icon]:
     z_nabla2_c_wp = astype(z_nabla2_c, wpfloat)
 
-    w_wp = w - diff_multfac_w * (area * area) * neighbor_sum(
-        z_nabla2_c_wp(C2E2CO) * geofac_n2s, axis=dims.C2E2CODim
+    w_wp = w - astype(
+        diff_multfac_w
+        * (area * area)
+        * neighbor_sum(z_nabla2_c_wp(C2E2CO) * geofac_n2s, axis=dims.C2E2CODim),
+        wp_icon,
     )
     return w_wp
 
@@ -34,7 +37,7 @@ def apply_nabla2_to_w(
     area: fa.CellField[wpfloat],
     z_nabla2_c: fa.CellKHalfField[vpfloat],
     geofac_n2s: gtx.Field[gtx.Dims[dims.CellDim, dims.C2E2CODim], wpfloat],
-    w: fa.CellKHalfField[wpfloat],
+    w: fa.CellKHalfField[wp_icon],
     diff_multfac_w: wpfloat,
     horizontal_start: gtx.int32,
     horizontal_end: gtx.int32,

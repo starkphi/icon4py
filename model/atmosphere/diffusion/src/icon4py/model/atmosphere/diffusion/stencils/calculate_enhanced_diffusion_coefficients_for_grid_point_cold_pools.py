@@ -6,6 +6,7 @@
 # Please, refer to the LICENSE file in the root directory.
 # SPDX-License-Identifier: BSD-3-Clause
 import gt4py.next as gtx
+from gt4py.next import astype
 
 from icon4py.model.atmosphere.diffusion.stencils.enhance_diffusion_coefficient_for_grid_point_cold_pools import (
     _enhance_diffusion_coefficient_for_grid_point_cold_pools,
@@ -14,19 +15,19 @@ from icon4py.model.atmosphere.diffusion.stencils.temporary_field_for_grid_point_
     _temporary_field_for_grid_point_cold_pools_enhancement,
 )
 from icon4py.model.common import dimension as dims, field_type_aliases as fa
-from icon4py.model.common.type_alias import vpfloat, wpfloat
+from icon4py.model.common.type_alias import vpfloat, wp_icon, wpfloat
 
 
 @gtx.field_operator
 def _calculate_enhanced_diffusion_coefficients_for_grid_point_cold_pools(
-    theta_v: fa.CellKField[wpfloat],
+    theta_v: fa.CellKField[wp_icon],
     theta_ref_mc: fa.CellKField[vpfloat],
     thresh_tdiff: wpfloat,
     smallest_vpfloat: vpfloat,
     kh_smag_e: fa.EdgeKField[vpfloat],
 ) -> fa.EdgeKField[vpfloat]:
     enh_diffu_3d = _temporary_field_for_grid_point_cold_pools_enhancement(
-        theta_v,
+        astype(theta_v, wpfloat),
         theta_ref_mc,
         thresh_tdiff,
         smallest_vpfloat,
@@ -37,7 +38,7 @@ def _calculate_enhanced_diffusion_coefficients_for_grid_point_cold_pools(
 
 @gtx.program(grid_type=gtx.GridType.UNSTRUCTURED)
 def calculate_enhanced_diffusion_coefficients_for_grid_point_cold_pools(
-    theta_v: fa.CellKField[wpfloat],
+    theta_v: fa.CellKField[wp_icon],
     theta_ref_mc: fa.CellKField[vpfloat],
     thresh_tdiff: wpfloat,
     smallest_vpfloat: vpfloat,

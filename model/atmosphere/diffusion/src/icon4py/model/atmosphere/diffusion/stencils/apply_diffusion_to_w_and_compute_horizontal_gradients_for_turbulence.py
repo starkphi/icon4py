@@ -6,6 +6,7 @@
 # Please, refer to the LICENSE file in the root directory.
 # SPDX-License-Identifier: BSD-3-Clause
 import gt4py.next as gtx
+from gt4py.next import astype
 from gt4py.next.experimental import concat_where
 
 from icon4py.model.atmosphere.diffusion.stencils.apply_nabla2_to_w import _apply_nabla2_to_w
@@ -19,7 +20,7 @@ from icon4py.model.atmosphere.diffusion.stencils.calculate_nabla2_for_w import (
     _calculate_nabla2_for_w,
 )
 from icon4py.model.common import dimension as dims, field_type_aliases as fa
-from icon4py.model.common.type_alias import vpfloat, wpfloat
+from icon4py.model.common.type_alias import vpfloat, wp_icon, wpfloat
 
 
 @gtx.field_operator
@@ -28,7 +29,7 @@ def _apply_diffusion_to_w_and_compute_horizontal_gradients_for_turbulence(
     geofac_n2s: gtx.Field[gtx.Dims[dims.CellDim, dims.C2E2CODim], wpfloat],
     geofac_grg_x: gtx.Field[gtx.Dims[dims.CellDim, dims.C2E2CODim], wpfloat],
     geofac_grg_y: gtx.Field[gtx.Dims[dims.CellDim, dims.C2E2CODim], wpfloat],
-    w_old: fa.CellKHalfField[wpfloat],
+    w_old: fa.CellKHalfField[wp_icon],
     type_shear: gtx.int32,
     dwdx: fa.CellKHalfField[vpfloat],
     dwdy: fa.CellKHalfField[vpfloat],
@@ -38,21 +39,22 @@ def _apply_diffusion_to_w_and_compute_horizontal_gradients_for_turbulence(
     interior_idx: gtx.int32,
     halo_idx: gtx.int32,
 ) -> tuple[
-    fa.CellKHalfField[wpfloat],
+    fa.CellKHalfField[wp_icon],
     fa.CellKHalfField[vpfloat],
     fa.CellKHalfField[vpfloat],
 ]:
+    w_old_wp = astype(w_old, wpfloat)
     dwdx, dwdy = (
         concat_where(
             0 < dims.KHalfDim,
-            _calculate_horizontal_gradients_for_turbulence(w_old, geofac_grg_x, geofac_grg_y),
+            _calculate_horizontal_gradients_for_turbulence(w_old_wp, geofac_grg_x, geofac_grg_y),
             (dwdx, dwdy),
         )
         if type_shear == 2
         else (dwdx, dwdy)
     )
 
-    z_nabla2_c = _calculate_nabla2_for_w(w_old, geofac_n2s)
+    z_nabla2_c = _calculate_nabla2_for_w(w_old_wp, geofac_n2s)
 
     w = concat_where(
         (interior_idx <= dims.CellDim) & (dims.CellDim < halo_idx),
@@ -78,8 +80,8 @@ def apply_diffusion_to_w_and_compute_horizontal_gradients_for_turbulence(
     geofac_n2s: gtx.Field[gtx.Dims[dims.CellDim, dims.C2E2CODim], wpfloat],
     geofac_grg_x: gtx.Field[gtx.Dims[dims.CellDim, dims.C2E2CODim], wpfloat],
     geofac_grg_y: gtx.Field[gtx.Dims[dims.CellDim, dims.C2E2CODim], wpfloat],
-    w_old: fa.CellKHalfField[wpfloat],
-    w: fa.CellKHalfField[wpfloat],
+    w_old: fa.CellKHalfField[wp_icon],
+    w: fa.CellKHalfField[wp_icon],
     type_shear: gtx.int32,
     dwdx: fa.CellKHalfField[vpfloat],
     dwdy: fa.CellKHalfField[vpfloat],
