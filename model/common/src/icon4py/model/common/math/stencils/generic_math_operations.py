@@ -103,3 +103,55 @@ def copy_field_on_cell_khalf(
             dims.KHalfDim: (vertical_start, vertical_end),
         },
     )
+
+
+@gtx.field_operator
+def _copy_wp_icon_field_on_cell_k(
+    field: fa.CellKField[ta.wp_icon],
+) -> fa.CellKField[ta.wp_icon]:
+    return field
+
+
+@gtx.program(grid_type=gtx.GridType.UNSTRUCTURED)
+def copy_wp_icon_field_on_cell_k(
+    field: fa.CellKField[ta.wp_icon],
+    output_field: fa.CellKField[ta.wp_icon],
+    horizontal_start: gtx.int32,
+    horizontal_end: gtx.int32,
+    vertical_start: gtx.int32,
+    vertical_end: gtx.int32,
+) -> None:
+    _copy_wp_icon_field_on_cell_k(
+        field,
+        out=output_field,
+        domain={
+            dims.CellDim: (horizontal_start, horizontal_end),
+            dims.KDim: (vertical_start, vertical_end),
+        },
+    )
+
+
+@gtx.field_operator
+def _copy_wp_icon_field_on_cell_khalf(
+    field: fa.CellKHalfField[ta.wp_icon],
+) -> fa.CellKHalfField[ta.wp_icon]:
+    return field
+
+
+@gtx.program(grid_type=gtx.GridType.UNSTRUCTURED)
+def copy_wp_icon_field_on_cell_khalf(
+    field: fa.CellKHalfField[ta.wp_icon],
+    output_field: fa.CellKHalfField[ta.wp_icon],
+    horizontal_start: gtx.int32,
+    horizontal_end: gtx.int32,
+    vertical_start: gtx.int32,
+    vertical_end: gtx.int32,
+) -> None:
+    _copy_wp_icon_field_on_cell_khalf(
+        field,
+        out=output_field,
+        domain={
+            dims.CellDim: (horizontal_start, horizontal_end),
+            dims.KHalfDim: (vertical_start, vertical_end),
+        },
+    )
