@@ -16,29 +16,40 @@ import gt4py.next as gtx
 DEFAULT_PRECISION = "double"
 
 # wp: working precision, vp: variable precision
+# wp_icon: ICON's wp, for fields that cross the ICON boundary; differs from wpfloat only in remixed
 wpfloat: TypeAlias = gtx.float64  # noqa: UP040
 vpfloat: TypeAlias = gtx.float64  # noqa: UP040
+wp_icon: TypeAlias = gtx.float64  # noqa: UP040
 type anyfloat = gtx.float32 | gtx.float64
 
 precision = os.environ.get("ICON4PY_FLOAT_PRECISION", DEFAULT_PRECISION).lower()
 
 
-def set_precision(new_precision: Literal["double", "mixed", "single"]) -> None:
-    global precision, vpfloat, wpfloat  # noqa: PLW0603 [global-statement]
+def set_precision(new_precision: Literal["double", "mixed", "single", "remixed"]) -> None:
+    global precision, vpfloat, wpfloat, wp_icon  # noqa: PLW0603 [global-statement]
 
     precision = new_precision.lower()
     match precision:
         case "double":
             wpfloat = gtx.float64
             vpfloat = gtx.float64
+            wp_icon = wpfloat
         case "mixed":
             wpfloat = gtx.float64
             vpfloat = gtx.float32
+            wp_icon = wpfloat
         case "single":
             vpfloat = gtx.float32
             wpfloat = gtx.float32
+            wp_icon = wpfloat
+        case "remixed":
+            wpfloat = gtx.float32
+            vpfloat = gtx.float32
+            wp_icon = gtx.float64
         case _:
-            raise ValueError("Only 'double', 'mixed' and 'single' precision are supported.")
+            raise ValueError(
+                "Only 'double', 'mixed', 'single' and 'remixed' precision are supported."
+            )
 
 
 set_precision(precision)
