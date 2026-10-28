@@ -41,8 +41,7 @@ def _apply_diffusion_to_theta_and_exner(
     rd_o_cvd: vpfloat,
     apply_zdiffusion_t: bool,
 ) -> tuple[fa.CellKField[wp_icon], fa.CellKField[wp_icon]]:
-    theta_v_wp = astype(theta_v, wpfloat)
-    z_nabla2_e = _calculate_nabla2_for_z(kh_smag_e, inv_dual_edge_length, theta_v_wp)
+    z_nabla2_e = _calculate_nabla2_for_z(kh_smag_e, inv_dual_edge_length, astype(theta_v, wpfloat))
     z_temp = _calculate_nabla2_of_theta(z_nabla2_e, geofac_div)
 
     if apply_zdiffusion_t:
@@ -56,7 +55,7 @@ def _apply_diffusion_to_theta_and_exner(
                 geofac_n2s_c,
                 geofac_n2s_nbh,
                 vcoef,
-                theta_v_wp,
+                astype(theta_v, wpfloat),
                 z_temp,
             ),
             z_temp,
