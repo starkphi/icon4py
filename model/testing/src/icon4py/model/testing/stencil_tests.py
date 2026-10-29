@@ -540,7 +540,7 @@ class StencilTest:
         input_data: dict[str, gtx.Field | tuple[gtx.Field, ...]],
     ) -> tuple[_ConnectivityConceptFixer, dict[str, Any]]:
         reference_inputs = {
-            k: v.asnumpy() if isinstance(v, gtx.Field) else v
+            k: v.asnumpy().copy() if isinstance(v, gtx.Field) else v  # copy: on CPU asnumpy() is a view of the output field
             for k, v in input_data.items()
         }
         self._reference_output_backtransform_by_name: dict[str, np.ndarray] = {}
