@@ -62,17 +62,17 @@ class DiagnosticStateNonHydro:
     Declared as w_concorr_c in ICON. Contravariant correction at cell center on k-half levels. vn dz/dn + vt dz/dt, z is topography height
     """
 
-    theta_v_at_cells_on_half_levels: fa.CellKHalfField[ta.wpfloat]
+    theta_v_at_cells_on_half_levels: fa.CellKHalfField[ta.wp_icon]
     """
     Declared as theta_v_ic in ICON.
     """
 
-    perturbed_exner_at_cells_on_model_levels: fa.CellKField[ta.wpfloat]
+    perturbed_exner_at_cells_on_model_levels: fa.CellKField[ta.wp_icon]
     """
     Declared as exner_pr in ICON.
     """
 
-    rho_at_cells_on_half_levels: fa.CellKHalfField[ta.wpfloat]
+    rho_at_cells_on_half_levels: fa.CellKHalfField[ta.wp_icon]
     """
     Declared as rho_ic in ICON.
     """
@@ -81,10 +81,10 @@ class DiagnosticStateNonHydro:
     """
     Declared as ddt_exner_phy in ICON.
     """
-    grf_tend_rho: fa.CellKField[ta.wpfloat]
-    grf_tend_thv: fa.CellKField[ta.wpfloat]
-    grf_tend_w: fa.CellKHalfField[ta.wpfloat]
-    mass_flux_at_edges_on_model_levels: fa.EdgeKField[ta.wpfloat]
+    grf_tend_rho: fa.CellKField[ta.wp_icon]
+    grf_tend_thv: fa.CellKField[ta.wp_icon]
+    grf_tend_w: fa.CellKHalfField[ta.wp_icon]
+    mass_flux_at_edges_on_model_levels: fa.EdgeKField[ta.wp_icon]
     """
     Declared as mass_fl_e in ICON.
     """
@@ -93,7 +93,7 @@ class DiagnosticStateNonHydro:
     Declared as ddt_vn_phy in ICON.
     """
 
-    grf_tend_vn: fa.EdgeKField[ta.wpfloat]
+    grf_tend_vn: fa.EdgeKField[ta.wp_icon]
     normal_wind_advective_tendency: common_utils.PredictorCorrectorPair[fa.EdgeKField[ta.vpfloat]]
     """
     Declared as ddt_vn_apc_pc in ICON. Advective tendency of normal wind (including coriolis force).
@@ -143,7 +143,7 @@ def initialize_solve_nonhydro_diagnostic_state(
     and, when restarting, the advective tendencies of the previous time step.
     """
     perturbed_exner_at_cells_on_model_levels = data_alloc.zero_field(
-        grid, dims.CellDim, dims.KDim, allocator=allocator
+        grid, dims.CellDim, dims.KDim, allocator=allocator, dtype=ta.wp_icon
     )
     normal_wind_advective_tendency = common_utils.PredictorCorrectorPair(
         data_alloc.zero_field(grid, dims.EdgeDim, dims.KDim, allocator=allocator, dtype=ta.vpfloat),
@@ -171,39 +171,39 @@ def initialize_solve_nonhydro_diagnostic_state(
         dims.CellDim,
         dims.KHalfDim,
         allocator=allocator,
-        dtype=ta.wpfloat,
+        dtype=ta.wp_icon,
     )
     rho_at_cells_on_half_levels = data_alloc.zero_field(
         grid,
         dims.CellDim,
         dims.KHalfDim,
         allocator=allocator,
-        dtype=ta.wpfloat,
+        dtype=ta.wp_icon,
     )
     exner_tendency_due_to_slow_physics = data_alloc.zero_field(
         grid, dims.CellDim, dims.KDim, allocator=allocator, dtype=ta.vpfloat
     )
     grf_tend_rho = data_alloc.zero_field(
-        grid, dims.CellDim, dims.KDim, allocator=allocator, dtype=ta.wpfloat
+        grid, dims.CellDim, dims.KDim, allocator=allocator, dtype=ta.wp_icon
     )
     grf_tend_thv = data_alloc.zero_field(
-        grid, dims.CellDim, dims.KDim, allocator=allocator, dtype=ta.wpfloat
+        grid, dims.CellDim, dims.KDim, allocator=allocator, dtype=ta.wp_icon
     )
     grf_tend_w = data_alloc.zero_field(
         grid,
         dims.CellDim,
         dims.KHalfDim,
         allocator=allocator,
-        dtype=ta.wpfloat,
+        dtype=ta.wp_icon,
     )
     mass_flux_at_edges_on_model_levels = data_alloc.zero_field(
-        grid, dims.EdgeDim, dims.KDim, allocator=allocator, dtype=ta.wpfloat
+        grid, dims.EdgeDim, dims.KDim, allocator=allocator, dtype=ta.wp_icon
     )
     normal_wind_tendency_due_to_slow_physics_process = data_alloc.zero_field(
         grid, dims.EdgeDim, dims.KDim, allocator=allocator, dtype=ta.vpfloat
     )
     grf_tend_vn = data_alloc.zero_field(
-        grid, dims.EdgeDim, dims.KDim, allocator=allocator, dtype=ta.wpfloat
+        grid, dims.EdgeDim, dims.KDim, allocator=allocator, dtype=ta.wp_icon
     )
     tangential_wind = data_alloc.zero_field(
         grid, dims.EdgeDim, dims.KDim, allocator=allocator, dtype=ta.vpfloat

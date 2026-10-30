@@ -221,13 +221,13 @@ class MetricStateNonHydro:
 class PrepAdvection:
     """Dataclass used in SolveNonHydro that pre-calculates fields during the dynamical substepping that are later needed in tracer advection."""
 
-    vn_traj: fa.EdgeKField[ta.wpfloat]
-    mass_flx_me: fa.EdgeKField[ta.wpfloat]
-    dynamical_vertical_mass_flux_at_cells_on_half_levels: fa.CellKHalfField[ta.wpfloat]
+    vn_traj: fa.EdgeKField[ta.wp_icon]
+    mass_flx_me: fa.EdgeKField[ta.wp_icon]
+    dynamical_vertical_mass_flux_at_cells_on_half_levels: fa.CellKHalfField[ta.wp_icon]
     """
     Declared as mass_flx_ic in ICON.
     """
-    dynamical_vertical_volumetric_flux_at_cells_on_half_levels: fa.CellKHalfField[ta.wpfloat]
+    dynamical_vertical_volumetric_flux_at_cells_on_half_levels: fa.CellKHalfField[ta.wp_icon]
     """
     Declared as vol_flx_ic in ICON.
     """
@@ -237,24 +237,24 @@ def initialize_prep_advection(
     grid: grid_base.Grid, allocator: gtx_typing.Allocator
 ) -> PrepAdvection:
     vn_traj = data_alloc.zero_field(
-        grid, dims.EdgeDim, dims.KDim, allocator=allocator, dtype=ta.wpfloat
+        grid, dims.EdgeDim, dims.KDim, allocator=allocator, dtype=ta.wp_icon
     )
     mass_flx_me = data_alloc.zero_field(
-        grid, dims.EdgeDim, dims.KDim, allocator=allocator, dtype=ta.wpfloat
+        grid, dims.EdgeDim, dims.KDim, allocator=allocator, dtype=ta.wp_icon
     )
     dynamical_vertical_mass_flux_at_cells_on_half_levels = data_alloc.zero_field(
         grid,
         dims.CellDim,
         dims.KHalfDim,
         allocator=allocator,
-        dtype=ta.wpfloat,
+        dtype=ta.wp_icon,
     )
     dynamical_vertical_volumetric_flux_at_cells_on_half_levels = data_alloc.zero_field(
         grid,
         dims.CellDim,
         dims.KHalfDim,
         allocator=allocator,
-        dtype=ta.wpfloat,
+        dtype=ta.wp_icon,
     )
     return PrepAdvection(
         vn_traj=vn_traj,

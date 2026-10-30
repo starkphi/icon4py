@@ -785,7 +785,7 @@ class SolveNonhydro:
 
         self._set_constant_on_half_levels_on_cells = setup_program(
             backend=backend,
-            program=vertical_operations.set_constant_on_half_levels_on_cells,
+            program=vertical_operations.set_constant_on_half_levels_on_cells_wp_icon,
             horizontal_sizes={
                 "horizontal_start": self._start_cell_lateral_boundary,
                 "horizontal_end": self._end_cell_lateral_boundary_level_4,
@@ -1093,7 +1093,7 @@ class SolveNonhydro:
         Declared as z_hydro_corr in ICON. Used for computation of horizontal pressure gradient over steep slope.
         """
         self.rayleigh_damping_factor = data_alloc.zero_field(
-            self._grid, dims.KHalfDim, dtype=ta.wpfloat, allocator=allocator
+            self._grid, dims.KHalfDim, dtype=ta.wp_icon, allocator=allocator
         )
         """
         Declared as z_raylfac in ICON.
@@ -1167,7 +1167,7 @@ class SolveNonhydro:
             #  Precompute Rayleigh damping factor if substep magnitude changes
             self._compute_rayleigh_damping_factor(
                 rayleigh_damping_factor=self.rayleigh_damping_factor,
-                dtime=dtime,
+                dtime=ta.wp_icon(dtime),
             )
             self._dtime_previous_substep = dtime
         return self.rayleigh_damping_factor
@@ -1423,7 +1423,7 @@ class SolveNonhydro:
                 rho_new=prognostic_states.next.rho,
                 exner_new=prognostic_states.next.exner,
                 w_new=prognostic_states.next.w,
-                dtime=dtime,
+                dtime=ta.wp_icon(dtime),
             )
 
         if self._grid.limited_area and self._config.divdamp_type >= 3:
@@ -1632,7 +1632,7 @@ class SolveNonhydro:
                     )
                     self._set_constant_on_half_levels_on_cells(
                         field=prep_adv.dynamical_vertical_mass_flux_at_cells_on_half_levels,
-                        value=ta.wpfloat(0.0),
+                        value=ta.wp_icon(0.0),
                     )
                 self._update_mass_flux_weighted(
                     rho_ic=diagnostic_state_nh.rho_at_cells_on_half_levels,
