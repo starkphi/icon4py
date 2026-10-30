@@ -7,7 +7,9 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import hashlib
+import linecache
 import os
+import pathlib
 import sys
 from collections.abc import Buffer
 from typing import Any
@@ -43,6 +45,21 @@ else:
 
 # standard tolerance for dallclose
 STD_RTOL = scale_tol(5e3) * VP_EPS  # for double ≈ 1.11e-12
+
+
+def _caller_source(depth: int = 2) -> str:
+    """'file:line call-text' of the call 'depth' frames up, to label print-mode output."""
+    frame = sys._getframe(depth)
+    code = frame.f_code
+    first = last = frame.f_lineno
+    # co_positions() has one (line, end_line, col, end_col) per 2-byte instruction.
+    positions = list(code.co_positions())
+    if 0 <= frame.f_lasti // 2 < len(positions):
+        start, end, _, _ = positions[frame.f_lasti // 2]
+        if start is not None and end is not None:
+            first, last = start, end
+    text = " ".join(linecache.getline(code.co_filename, n).strip() for n in range(first, last + 1))
+    return f"{pathlib.Path(code.co_filename).name}:{first} {text[:200]}"
 
 
 def _max_diffs(actual: np.ndarray, desired: np.ndarray) -> tuple[float, float]:
@@ -127,8 +144,15 @@ def assert_dallclose(
         # with the terminal reporter, so they cannot be attributed to a test
         # from their position in the output alone.
         test_id = os.environ.get("PYTEST_CURRENT_TEST", "").partition(" (")[0]
+        # What the assert would have decided, and where it was called from.
+        verdict = (
+            "PASS"
+            if np.allclose(actual_arr, desired_arr, rtol=rtol, atol=atol, equal_nan=equal_nan)
+            else "FAIL"
+        )
         print(
-            f"{color}{test_id} {err_msg} max abs diff {max_abs_diff} max rel diff {max_rel_diff}\033[0m",
+            f"{color}{test_id} {err_msg} max abs diff {max_abs_diff} max rel diff {max_rel_diff}"
+            f" | rtol {rtol} atol {atol} would {verdict} | at {_caller_source()}\033[0m",
             file=sys.stderr,
         )
     else:
