@@ -18,7 +18,7 @@ from gt4py.next import broadcast
 from gt4py.next.experimental import concat_where
 
 from icon4py.model.common import dimension as dims, field_type_aliases as fa
-from icon4py.model.common.type_alias import vpfloat, wpfloat
+from icon4py.model.common.type_alias import vpfloat, wp_icon, wpfloat
 
 
 @gtx.field_operator
@@ -150,6 +150,32 @@ def set_constant_on_half_levels_on_cells(  # noqa: PLR0917 [too-many-positional-
     vertical_end: gtx.int32,
 ) -> None:
     _set_constant_on_half_levels_on_cells(
+        value=value,
+        out=field,
+        domain={
+            dims.CellDim: (horizontal_start, horizontal_end),
+            dims.KHalfDim: (vertical_start, vertical_end),
+        },
+    )
+
+
+@gtx.field_operator
+def _set_constant_on_half_levels_on_cells_wp_icon(
+    value: wp_icon,
+) -> fa.CellKHalfField[wp_icon]:
+    return broadcast(value, (dims.CellDim, dims.KHalfDim))
+
+
+@gtx.program(grid_type=gtx.GridType.UNSTRUCTURED)
+def set_constant_on_half_levels_on_cells_wp_icon(  # noqa: PLR0917 [too-many-positional-arguments]
+    field: fa.CellKHalfField[wp_icon],
+    value: wp_icon,
+    horizontal_start: gtx.int32,
+    horizontal_end: gtx.int32,
+    vertical_start: gtx.int32,
+    vertical_end: gtx.int32,
+) -> None:
+    _set_constant_on_half_levels_on_cells_wp_icon(
         value=value,
         out=field,
         domain={
