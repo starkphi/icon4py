@@ -8,15 +8,15 @@
 import gt4py.next as gtx
 
 from icon4py.model.common import dimension as dims, field_type_aliases as fa
-from icon4py.model.common.type_alias import wpfloat
+from icon4py.model.common.type_alias import wp_icon
 
 
 @gtx.field_operator
 def _update_wind(
-    w_now: fa.CellKHalfField[wpfloat],
-    grf_tend_w: fa.CellKHalfField[wpfloat],
-    dtime: wpfloat,
-) -> fa.CellKHalfField[wpfloat]:
+    w_now: fa.CellKHalfField[wp_icon],
+    grf_tend_w: fa.CellKHalfField[wp_icon],
+    dtime: wp_icon,
+) -> fa.CellKHalfField[wp_icon]:
     """Formerly known as _mo_solve_nonhydro_stencil_62."""
     w_new_wp = w_now + dtime * grf_tend_w
     return w_new_wp
@@ -24,10 +24,10 @@ def _update_wind(
 
 @gtx.program(grid_type=gtx.GridType.UNSTRUCTURED)
 def update_wind(
-    w_now: fa.CellKHalfField[wpfloat],
-    grf_tend_w: fa.CellKHalfField[wpfloat],
-    w_new: fa.CellKHalfField[wpfloat],
-    dtime: wpfloat,
+    w_now: fa.CellKHalfField[wp_icon],
+    grf_tend_w: fa.CellKHalfField[wp_icon],
+    w_new: fa.CellKHalfField[wp_icon],
+    dtime: wp_icon,
     horizontal_start: gtx.int32,
     horizontal_end: gtx.int32,
     vertical_start: gtx.int32,

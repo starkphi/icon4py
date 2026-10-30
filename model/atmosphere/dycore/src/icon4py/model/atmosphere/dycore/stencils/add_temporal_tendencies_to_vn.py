@@ -10,37 +10,41 @@ from gt4py.next import astype
 
 from icon4py.model.common import dimension as dims, field_type_aliases as fa
 from icon4py.model.common.constants import PhysicsConstants
-from icon4py.model.common.type_alias import vpfloat, wpfloat
+from icon4py.model.common.type_alias import vpfloat, wp_icon, wpfloat
 
 
 @gtx.field_operator
 def _add_temporal_tendencies_to_vn(
-    vn_nnow: fa.EdgeKField[wpfloat],
+    vn_nnow: fa.EdgeKField[wp_icon],
     ddt_vn_apc_ntl1: fa.EdgeKField[vpfloat],
     ddt_vn_phy: fa.EdgeKField[vpfloat],
     z_theta_v_e: fa.EdgeKField[wpfloat],
     z_gradh_exner: fa.EdgeKField[vpfloat],
     dtime: wpfloat,
-) -> fa.EdgeKField[wpfloat]:
+) -> fa.EdgeKField[wp_icon]:
     """Formerly known as _mo_solve_nonhydro_stencil_24."""
     z_gradh_exner_wp = astype(z_gradh_exner, wpfloat)
 
-    vn_nnew_wp = vn_nnow + dtime * (
-        astype(ddt_vn_apc_ntl1, wpfloat)
-        - PhysicsConstants.cpd * z_theta_v_e * z_gradh_exner_wp
-        + astype(ddt_vn_phy, wpfloat)
+    vn_nnew_wp = vn_nnow + astype(
+        dtime
+        * (
+            astype(ddt_vn_apc_ntl1, wpfloat)
+            - PhysicsConstants.cpd * z_theta_v_e * z_gradh_exner_wp
+            + astype(ddt_vn_phy, wpfloat)
+        ),
+        wp_icon,
     )
     return vn_nnew_wp
 
 
 @gtx.program(grid_type=gtx.GridType.UNSTRUCTURED)
 def add_temporal_tendencies_to_vn(
-    vn_nnow: fa.EdgeKField[wpfloat],
+    vn_nnow: fa.EdgeKField[wp_icon],
     ddt_vn_apc_ntl1: fa.EdgeKField[vpfloat],
     ddt_vn_phy: fa.EdgeKField[vpfloat],
     z_theta_v_e: fa.EdgeKField[wpfloat],
     z_gradh_exner: fa.EdgeKField[vpfloat],
-    vn_nnew: fa.EdgeKField[wpfloat],
+    vn_nnew: fa.EdgeKField[wp_icon],
     dtime: wpfloat,
     horizontal_start: gtx.int32,
     horizontal_end: gtx.int32,

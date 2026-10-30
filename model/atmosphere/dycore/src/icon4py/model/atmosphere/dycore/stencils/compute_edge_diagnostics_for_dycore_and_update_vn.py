@@ -8,7 +8,7 @@
 
 
 import gt4py.next as gtx
-from gt4py.next import broadcast, where
+from gt4py.next import astype, broadcast, where
 from gt4py.next.experimental import concat_where
 
 from icon4py.model.atmosphere.dycore.stencils.add_analysis_increments_to_vn import (
@@ -50,7 +50,7 @@ from icon4py.model.atmosphere.dycore.stencils.compute_vn_on_lateral_boundary imp
 )
 from icon4py.model.common import dimension as dims, field_type_aliases as fa, type_alias as ta
 from icon4py.model.common.constants import PhysicsConstants
-from icon4py.model.common.type_alias import vpfloat, wpfloat
+from icon4py.model.common.type_alias import vpfloat, wp_icon, wpfloat
 
 
 @gtx.field_operator
@@ -131,8 +131,8 @@ def _compute_horizontal_pressure_gradient(
 
 @gtx.field_operator
 def _compute_rho_theta_pgrad_and_update_vn(
-    next_vn: fa.EdgeKField[ta.wpfloat],
-    current_vn: fa.EdgeKField[ta.wpfloat],
+    next_vn: fa.EdgeKField[ta.wp_icon],
+    current_vn: fa.EdgeKField[ta.wp_icon],
     tangential_wind: fa.EdgeKField[ta.vpfloat],
     reference_rho_at_edges_on_model_levels: fa.EdgeKField[ta.vpfloat],
     reference_theta_at_edges_on_model_levels: fa.EdgeKField[ta.vpfloat],
@@ -145,7 +145,7 @@ def _compute_rho_theta_pgrad_and_update_vn(
     predictor_normal_wind_advective_tendency: fa.EdgeKField[ta.vpfloat],
     normal_wind_tendency_due_to_slow_physics_process: fa.EdgeKField[ta.vpfloat],
     normal_wind_iau_increment: fa.EdgeKField[ta.vpfloat],
-    grf_tend_vn: fa.EdgeKField[ta.wpfloat],
+    grf_tend_vn: fa.EdgeKField[ta.wp_icon],
     geofac_grg_x: gtx.Field[[dims.CellDim, dims.C2E2CODim], ta.wpfloat],
     geofac_grg_y: gtx.Field[[dims.CellDim, dims.C2E2CODim], ta.wpfloat],
     pos_on_tplane_e_x: gtx.Field[[dims.EdgeDim, dims.E2CDim], ta.wpfloat],
@@ -176,7 +176,7 @@ def _compute_rho_theta_pgrad_and_update_vn(
     fa.EdgeKField[ta.wpfloat],
     fa.EdgeKField[ta.wpfloat],
     fa.EdgeKField[ta.wpfloat],
-    fa.EdgeKField[ta.wpfloat],
+    fa.EdgeKField[ta.wp_icon],
 ]:
     # TODO(havogt): it would be nice if we could shrink the start of the compute domain to `start_edge_lateral_boundary_level_7 <= dims.EdgeDim`,
     # but that would require to put the correct lateral boundary condition where this is consumed.
@@ -186,7 +186,7 @@ def _compute_rho_theta_pgrad_and_update_vn(
     (rho_at_edges_on_model_levels, theta_v_at_edges_on_model_levels) = concat_where(
         ((start_edge_lateral_boundary_level_7 <= dims.EdgeDim) & (dims.EdgeDim < end_edge_halo)),
         _compute_horizontal_advection_of_rho_and_theta(
-            p_vn=current_vn,
+            p_vn=astype(current_vn, wpfloat),
             p_vt=tangential_wind,
             pos_on_tplane_e_1=pos_on_tplane_e_x,
             pos_on_tplane_e_2=pos_on_tplane_e_y,
@@ -251,7 +251,7 @@ def _compute_rho_theta_pgrad_and_update_vn(
             _compute_vn_on_lateral_boundary(
                 vn_now=current_vn,
                 grf_tend_vn=grf_tend_vn,
-                dtime=dtime,
+                dtime=astype(dtime, wp_icon),
             ),
             next_vn,
         )
@@ -267,8 +267,8 @@ def _compute_rho_theta_pgrad_and_update_vn(
 @gtx.field_operator
 def _apply_divergence_damping_and_update_vn(
     horizontal_gradient_of_normal_wind_divergence: fa.EdgeKField[ta.vpfloat],
-    next_vn: fa.EdgeKField[ta.wpfloat],
-    current_vn: fa.EdgeKField[ta.wpfloat],
+    next_vn: fa.EdgeKField[ta.wp_icon],
+    current_vn: fa.EdgeKField[ta.wp_icon],
     dwdz_at_cells_on_model_levels: fa.CellKField[ta.vpfloat],
     predictor_normal_wind_advective_tendency: fa.EdgeKField[ta.vpfloat],
     corrector_normal_wind_advective_tendency: fa.EdgeKField[ta.vpfloat],
@@ -296,7 +296,7 @@ def _apply_divergence_damping_and_update_vn(
     second_order_divdamp_factor: wpfloat,
     max_nudging_coefficient: wpfloat,
     wp_eps: wpfloat,
-) -> fa.EdgeKField[ta.wpfloat]:
+) -> fa.EdgeKField[ta.wp_icon]:
     # add dw/dz for divergence damping term. In ICON, this stencil starts from k = kstart_dd3d until k = nlev - 1.
     # Since scaling_factor_for_3d_divdamp is zero when k < kstart_dd3d, it is meaningless to execute computation
     # above level kstart_dd3d. But we have decided to remove this manual optimization in icon4py.
@@ -368,8 +368,8 @@ def compute_rho_theta_pgrad_and_update_vn(
     rho_at_edges_on_model_levels: fa.EdgeKField[ta.wpfloat],
     theta_v_at_edges_on_model_levels: fa.EdgeKField[ta.wpfloat],
     horizontal_pressure_gradient: fa.EdgeKField[ta.vpfloat],
-    next_vn: fa.EdgeKField[ta.wpfloat],
-    current_vn: fa.EdgeKField[ta.wpfloat],
+    next_vn: fa.EdgeKField[ta.wp_icon],
+    current_vn: fa.EdgeKField[ta.wp_icon],
     tangential_wind: fa.EdgeKField[ta.vpfloat],
     reference_rho_at_edges_on_model_levels: fa.EdgeKField[ta.vpfloat],
     reference_theta_at_edges_on_model_levels: fa.EdgeKField[ta.vpfloat],
@@ -382,7 +382,7 @@ def compute_rho_theta_pgrad_and_update_vn(
     predictor_normal_wind_advective_tendency: fa.EdgeKField[ta.vpfloat],
     normal_wind_tendency_due_to_slow_physics_process: fa.EdgeKField[ta.vpfloat],
     normal_wind_iau_increment: fa.EdgeKField[ta.vpfloat],
-    grf_tend_vn: fa.EdgeKField[ta.wpfloat],
+    grf_tend_vn: fa.EdgeKField[ta.wp_icon],
     geofac_grg_x: gtx.Field[[dims.CellDim, dims.C2E2CODim], ta.wpfloat],
     geofac_grg_y: gtx.Field[[dims.CellDim, dims.C2E2CODim], ta.wpfloat],
     pos_on_tplane_e_x: gtx.Field[[dims.EdgeDim, dims.E2CDim], ta.wpfloat],
@@ -543,8 +543,8 @@ def compute_rho_theta_pgrad_and_update_vn(
 @gtx.program(grid_type=gtx.GridType.UNSTRUCTURED)
 def apply_divergence_damping_and_update_vn(
     horizontal_gradient_of_normal_wind_divergence: fa.EdgeKField[ta.vpfloat],
-    next_vn: fa.EdgeKField[ta.wpfloat],
-    current_vn: fa.EdgeKField[ta.wpfloat],
+    next_vn: fa.EdgeKField[ta.wp_icon],
+    current_vn: fa.EdgeKField[ta.wp_icon],
     dwdz_at_cells_on_model_levels: fa.CellKField[ta.vpfloat],
     predictor_normal_wind_advective_tendency: fa.EdgeKField[ta.vpfloat],
     corrector_normal_wind_advective_tendency: fa.EdgeKField[ta.vpfloat],

@@ -31,13 +31,21 @@ from icon4py.model.common.dimension import E2C2EO
 from icon4py.model.common.interpolation.stencils.compute_tangential_wind import (
     _compute_tangential_wind,
 )
-from icon4py.model.common.type_alias import vpfloat
+from icon4py.model.common.type_alias import vpfloat, wpfloat
+
+
+@gtx.field_operator
+def _extrapolate_wp_icon_vn_at_top(
+    wgtfacq_e: fa.EdgeKField[ta.vpfloat],
+    vn: fa.EdgeKField[ta.wp_icon],
+) -> fa.EdgeKHalfField[ta.vpfloat]:
+    return _extrapolate_at_top(wgtfacq_e, astype(vn, wpfloat))
 
 
 @gtx.field_operator
 def _compute_horizontal_velocity_quantities_and_fluxes(
     contravariant_correction_at_edges_on_model_levels: fa.EdgeKField[ta.vpfloat],
-    vn: fa.EdgeKField[ta.wpfloat],
+    vn: fa.EdgeKField[ta.wp_icon],
     e_flx_avg: gtx.Field[gtx.Dims[dims.EdgeDim, dims.E2C2EODim], ta.wpfloat],
     geofac_grdiv: gtx.Field[gtx.Dims[dims.EdgeDim, dims.E2C2EODim], ta.wpfloat],
     rbf_vec_coeff_e: gtx.Field[gtx.Dims[dims.EdgeDim, dims.E2C2EDim], ta.wpfloat],
@@ -52,21 +60,22 @@ def _compute_horizontal_velocity_quantities_and_fluxes(
     fa.EdgeKField[ta.wpfloat],
     fa.EdgeKField[ta.vpfloat],
     fa.EdgeKField[ta.vpfloat],
-    fa.EdgeKField[ta.wpfloat],
+    fa.EdgeKField[ta.wp_icon],
     fa.EdgeKField[ta.wpfloat],
     fa.EdgeKHalfField[ta.vpfloat],
     fa.EdgeKHalfField[ta.vpfloat],
     fa.EdgeKField[ta.vpfloat],
     fa.EdgeKField[ta.vpfloat],
 ]:
+    vn_wp = astype(vn, wpfloat)
     spatially_averaged_vn = _spatially_average_flux_or_velocity(
-        e_flx_avg=e_flx_avg, flux_or_velocity=vn
+        e_flx_avg=e_flx_avg, flux_or_velocity=vn_wp
     )
     horizontal_gradient_of_normal_wind_divergence = astype(
-        neighbor_sum(geofac_grdiv * vn(E2C2EO), axis=dims.E2C2EODim), vpfloat
+        neighbor_sum(geofac_grdiv * vn_wp(E2C2EO), axis=dims.E2C2EODim), vpfloat
     )
     tangential_wind = astype(
-        _compute_tangential_wind(vn=vn, rbf_vec_coeff_e=rbf_vec_coeff_e), vpfloat
+        _compute_tangential_wind(vn=vn_wp, rbf_vec_coeff_e=rbf_vec_coeff_e), vpfloat
     )
 
     (
@@ -80,15 +89,15 @@ def _compute_horizontal_velocity_quantities_and_fluxes(
     )
 
     horizontal_kinetic_energy_at_edges_on_model_levels = _compute_horizontal_kinetic_energy(
-        vn, tangential_wind
+        vn_wp, tangential_wind
     )
 
-    vn_on_half_levels = _interpolate_to_half_levels(wgtfac_e, vn)
+    vn_on_half_levels = _interpolate_to_half_levels(wgtfac_e, vn_wp)
     tangential_wind_on_half_levels = _interpolate_to_half_levels(wgtfac_e, tangential_wind)
 
     contravariant_correction_at_edges_on_model_levels = concat_where(
         nflatlev <= dims.KDim,
-        _compute_contravariant_correction(vn, ddxn_z_full, ddxt_z_full, tangential_wind),
+        _compute_contravariant_correction(vn_wp, ddxn_z_full, ddxt_z_full, tangential_wind),
         contravariant_correction_at_edges_on_model_levels,
     )
 
@@ -96,7 +105,7 @@ def _compute_horizontal_velocity_quantities_and_fluxes(
         spatially_averaged_vn,
         horizontal_gradient_of_normal_wind_divergence,
         tangential_wind,
-        mass_flux_at_edges_on_model_levels,
+        astype(mass_flux_at_edges_on_model_levels, ta.wp_icon),
         theta_v_flux_at_edges_on_model_levels,
         vn_on_half_levels,
         tangential_wind_on_half_levels,
@@ -110,13 +119,13 @@ def compute_horizontal_velocity_quantities_and_fluxes(
     spatially_averaged_vn: fa.EdgeKField[ta.wpfloat],
     horizontal_gradient_of_normal_wind_divergence: fa.EdgeKField[ta.vpfloat],
     tangential_wind: fa.EdgeKField[ta.vpfloat],
-    mass_flux_at_edges_on_model_levels: fa.EdgeKField[ta.wpfloat],
+    mass_flux_at_edges_on_model_levels: fa.EdgeKField[ta.wp_icon],
     theta_v_flux_at_edges_on_model_levels: fa.EdgeKField[ta.wpfloat],
     tangential_wind_on_half_levels: fa.EdgeKHalfField[ta.vpfloat],
     vn_on_half_levels: fa.EdgeKHalfField[ta.vpfloat],
     horizontal_kinetic_energy_at_edges_on_model_levels: fa.EdgeKField[ta.vpfloat],
     contravariant_correction_at_edges_on_model_levels: fa.EdgeKField[ta.vpfloat],
-    vn: fa.EdgeKField[ta.wpfloat],
+    vn: fa.EdgeKField[ta.wp_icon],
     e_flx_avg: gtx.Field[gtx.Dims[dims.EdgeDim, dims.E2C2EODim], ta.wpfloat],
     geofac_grdiv: gtx.Field[gtx.Dims[dims.EdgeDim, dims.E2C2EODim], ta.wpfloat],
     rbf_vec_coeff_e: gtx.Field[gtx.Dims[dims.EdgeDim, dims.E2C2EDim], ta.wpfloat],
@@ -241,7 +250,7 @@ def compute_horizontal_velocity_quantities_and_fluxes(
         ),
     )
 
-    _extrapolate_at_top(
+    _extrapolate_wp_icon_vn_at_top(
         wgtfacq_e,
         vn,
         out=vn_on_half_levels,
@@ -254,10 +263,10 @@ def compute_horizontal_velocity_quantities_and_fluxes(
 
 @gtx.field_operator
 def _compute_averaged_vn_and_fluxes(
-    substep_and_spatially_averaged_vn: fa.EdgeKField[ta.wpfloat],
-    substep_averaged_mass_flux: fa.EdgeKField[ta.wpfloat],
+    substep_and_spatially_averaged_vn: fa.EdgeKField[ta.wp_icon],
+    substep_averaged_mass_flux: fa.EdgeKField[ta.wp_icon],
     e_flx_avg: gtx.Field[gtx.Dims[dims.EdgeDim, dims.E2C2EODim], ta.wpfloat],
-    vn: fa.EdgeKField[ta.wpfloat],
+    vn: fa.EdgeKField[ta.wp_icon],
     rho_at_edges_on_model_levels: fa.EdgeKField[ta.wpfloat],
     ddqz_z_full_e: fa.EdgeKField[ta.vpfloat],
     theta_v_at_edges_on_model_levels: fa.EdgeKField[ta.wpfloat],
@@ -266,12 +275,12 @@ def _compute_averaged_vn_and_fluxes(
     r_nsubsteps: ta.wpfloat,
 ) -> tuple[
     fa.EdgeKField[ta.wpfloat],
+    fa.EdgeKField[ta.wp_icon],
     fa.EdgeKField[ta.wpfloat],
-    fa.EdgeKField[ta.wpfloat],
-    fa.EdgeKField[ta.wpfloat],
-    fa.EdgeKField[ta.wpfloat],
+    fa.EdgeKField[ta.wp_icon],
+    fa.EdgeKField[ta.wp_icon],
 ]:
-    spatially_averaged_vn = _spatially_average_flux_or_velocity(e_flx_avg, vn)
+    spatially_averaged_vn = _spatially_average_flux_or_velocity(e_flx_avg, astype(vn, wpfloat))
 
     (
         mass_flux_at_edges_on_model_levels,
@@ -285,7 +294,13 @@ def _compute_averaged_vn_and_fluxes(
 
     if prepare_fluxes_for_advection:
         substep_and_spatially_averaged_vn, substep_averaged_mass_flux = (
-            (r_nsubsteps * spatially_averaged_vn, r_nsubsteps * mass_flux_at_edges_on_model_levels)
+            astype(
+                (
+                    r_nsubsteps * spatially_averaged_vn,
+                    r_nsubsteps * mass_flux_at_edges_on_model_levels,
+                ),
+                ta.wp_icon,
+            )
             if at_first_substep
             else _accumulate_prep_adv_fields(
                 spatially_averaged_vn,
@@ -298,7 +313,7 @@ def _compute_averaged_vn_and_fluxes(
 
     return (
         spatially_averaged_vn,
-        mass_flux_at_edges_on_model_levels,
+        astype(mass_flux_at_edges_on_model_levels, ta.wp_icon),
         theta_v_flux_at_edges_on_model_levels,
         substep_and_spatially_averaged_vn,
         substep_averaged_mass_flux,
@@ -308,12 +323,12 @@ def _compute_averaged_vn_and_fluxes(
 @gtx.program(grid_type=gtx.GridType.UNSTRUCTURED)
 def compute_averaged_vn_and_fluxes(
     spatially_averaged_vn: fa.EdgeKField[ta.wpfloat],
-    mass_flux_at_edges_on_model_levels: fa.EdgeKField[ta.wpfloat],
+    mass_flux_at_edges_on_model_levels: fa.EdgeKField[ta.wp_icon],
     theta_v_flux_at_edges_on_model_levels: fa.EdgeKField[ta.wpfloat],
-    substep_and_spatially_averaged_vn: fa.EdgeKField[ta.wpfloat],
-    substep_averaged_mass_flux: fa.EdgeKField[ta.wpfloat],
+    substep_and_spatially_averaged_vn: fa.EdgeKField[ta.wp_icon],
+    substep_averaged_mass_flux: fa.EdgeKField[ta.wp_icon],
     e_flx_avg: gtx.Field[gtx.Dims[dims.EdgeDim, dims.E2C2EODim], ta.wpfloat],
-    vn: fa.EdgeKField[ta.wpfloat],
+    vn: fa.EdgeKField[ta.wp_icon],
     rho_at_edges_on_model_levels: fa.EdgeKField[ta.wpfloat],
     ddqz_z_full_e: fa.EdgeKField[ta.vpfloat],
     theta_v_at_edges_on_model_levels: fa.EdgeKField[ta.wpfloat],

@@ -31,7 +31,7 @@ from icon4py.model.common.interpolation.stencils.interpolate_cell_field_to_half_
 from icon4py.model.common.interpolation.stencils.interpolate_to_cell_center_vp import (
     _interpolate_to_cell_center_vp,
 )
-from icon4py.model.common.type_alias import vpfloat
+from icon4py.model.common.type_alias import vpfloat, wpfloat
 
 
 @gtx.field_operator
@@ -110,8 +110,8 @@ def _interpolate_contravariant_correction_to_cells_on_half_levels(
 def _compute_velocity_advection_in_predictor_step(
     tangential_wind_on_half_levels: fa.EdgeKHalfField[ta.vpfloat],
     vertical_wind_advective_tendency: fa.CellKHalfField[ta.vpfloat],
-    vn: fa.EdgeKField[ta.wpfloat],
-    w: fa.CellKHalfField[ta.wpfloat],
+    vn: fa.EdgeKField[ta.wp_icon],
+    w: fa.CellKHalfField[ta.wp_icon],
     rbf_vec_coeff_e: gtx.Field[gtx.Dims[dims.EdgeDim, dims.E2C2EDim], ta.wpfloat],
     wgtfac_e: fa.EdgeKHalfField[ta.vpfloat],
     wgtfacq_e: fa.EdgeKField[ta.vpfloat],
@@ -153,6 +153,7 @@ def _compute_velocity_advection_in_predictor_step(
     fa.CellKHalfField[ta.vpfloat],
     fa.EdgeKField[ta.vpfloat],
 ]:
+    vn_wp, w_wp = astype((vn, w), wpfloat)
     (
         tangential_wind,
         tangential_wind_on_half_levels,
@@ -161,7 +162,7 @@ def _compute_velocity_advection_in_predictor_step(
         contravariant_correction_at_edges_on_model_levels,
     ) = _compute_diagnostics_from_normal_wind(
         tangential_wind_on_half_levels=tangential_wind_on_half_levels,
-        vn=vn,
+        vn=vn_wp,
         rbf_vec_coeff_e=rbf_vec_coeff_e,
         wgtfac_e=wgtfac_e,
         wgtfacq_e=wgtfacq_e,
@@ -183,7 +184,7 @@ def _compute_velocity_advection_in_predictor_step(
         contravariant_corrected_w_at_cells_on_model_levels,
         vertical_cfl,
     ) = _compute_advection_in_vertical_momentum(
-        w=w,
+        w=w_wp,
         tangential_wind_on_half_levels=tangential_wind_on_half_levels,
         vn_on_half_levels=vn_on_half_levels,
         contravariant_correction_at_cells_on_half_levels=contravariant_correction_at_cells_on_half_levels,
@@ -214,7 +215,7 @@ def _compute_velocity_advection_in_predictor_step(
     )
 
     normal_wind_advective_tendency = _compute_advection_in_horizontal_momentum(
-        vn=vn,
+        vn=vn_wp,
         horizontal_kinetic_energy_at_edges_on_model_levels=horizontal_kinetic_energy_at_edges_on_model_levels,
         tangential_wind=tangential_wind,
         coriolis_frequency=coriolis_frequency,
@@ -259,8 +260,8 @@ def compute_velocity_advection_in_predictor_step(
     vertical_wind_advective_tendency: fa.CellKHalfField[ta.vpfloat],
     vertical_cfl: fa.CellKHalfField[ta.vpfloat],
     normal_wind_advective_tendency: fa.EdgeKField[ta.vpfloat],
-    vn: fa.EdgeKField[ta.wpfloat],
-    w: fa.CellKHalfField[ta.wpfloat],
+    vn: fa.EdgeKField[ta.wp_icon],
+    w: fa.CellKHalfField[ta.wp_icon],
     rbf_vec_coeff_e: gtx.Field[gtx.Dims[dims.EdgeDim, dims.E2C2EDim], ta.wpfloat],
     wgtfac_e: fa.EdgeKHalfField[ta.vpfloat],
     wgtfacq_e: fa.EdgeKField[ta.vpfloat],

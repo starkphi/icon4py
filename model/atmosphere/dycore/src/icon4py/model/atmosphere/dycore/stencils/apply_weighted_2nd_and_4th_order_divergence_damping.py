@@ -13,7 +13,7 @@ from icon4py.model.atmosphere.dycore.dycore_utils import (
     _calculate_reduced_fourth_order_divdamp_coeff_at_nest_boundary,
 )
 from icon4py.model.common import dimension as dims, field_type_aliases as fa
-from icon4py.model.common.type_alias import vpfloat, wpfloat
+from icon4py.model.common.type_alias import vpfloat, wp_icon, wpfloat
 
 
 @gtx.field_operator
@@ -21,13 +21,13 @@ def _apply_weighted_2nd_and_4th_order_divergence_damping(
     interpolated_fourth_order_divdamp_factor: fa.KField[wpfloat],
     nudgecoeff_e: fa.EdgeField[wpfloat],
     z_graddiv2_vn: fa.EdgeKField[vpfloat],
-    vn: fa.EdgeKField[wpfloat],
+    vn: fa.EdgeKField[wp_icon],
     divdamp_order: gtx.int32,
     mean_cell_area: wpfloat,
     second_order_divdamp_factor: wpfloat,
     max_nudging_coefficient: wpfloat,
     wp_eps: wpfloat,
-) -> fa.EdgeKField[wpfloat]:
+) -> fa.EdgeKField[wp_icon]:
     """Formerly known as _mo_solve_nonhydro_stencil_27."""
     scal_divdamp = _calculate_fourth_order_divdamp_scaling_coeff(
         interpolated_fourth_order_divdamp_factor,
@@ -39,7 +39,7 @@ def _apply_weighted_2nd_and_4th_order_divergence_damping(
         scal_divdamp, max_nudging_coefficient, wp_eps
     )
     z_graddiv2_vn_wp = astype(z_graddiv2_vn, wpfloat)
-    vn_wp = vn + (scal_divdamp + bdy_divdamp * nudgecoeff_e) * z_graddiv2_vn_wp
+    vn_wp = vn + astype((scal_divdamp + bdy_divdamp * nudgecoeff_e) * z_graddiv2_vn_wp, wp_icon)
     return vn_wp
 
 
@@ -48,7 +48,7 @@ def apply_weighted_2nd_and_4th_order_divergence_damping(
     interpolated_fourth_order_divdamp_factor: fa.KField[wpfloat],
     nudgecoeff_e: fa.EdgeField[wpfloat],
     z_graddiv2_vn: fa.EdgeKField[vpfloat],
-    vn: fa.EdgeKField[wpfloat],
+    vn: fa.EdgeKField[wp_icon],
     divdamp_order: gtx.int32,
     mean_cell_area: wpfloat,
     second_order_divdamp_factor: wpfloat,

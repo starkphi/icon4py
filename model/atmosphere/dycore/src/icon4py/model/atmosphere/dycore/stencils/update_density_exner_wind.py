@@ -9,22 +9,22 @@ import gt4py.next as gtx
 
 from icon4py.model.atmosphere.dycore.stencils.update_wind import _update_wind
 from icon4py.model.common import dimension as dims, field_type_aliases as fa
-from icon4py.model.common.type_alias import wpfloat
+from icon4py.model.common.type_alias import wp_icon
 
 
 @gtx.field_operator
 def _update_density_exner_wind(
-    rho_now: fa.CellKField[wpfloat],
-    grf_tend_rho: fa.CellKField[wpfloat],
-    theta_v_now: fa.CellKField[wpfloat],
-    grf_tend_thv: fa.CellKField[wpfloat],
-    w_now: fa.CellKHalfField[wpfloat],
-    grf_tend_w: fa.CellKHalfField[wpfloat],
-    dtime: wpfloat,
+    rho_now: fa.CellKField[wp_icon],
+    grf_tend_rho: fa.CellKField[wp_icon],
+    theta_v_now: fa.CellKField[wp_icon],
+    grf_tend_thv: fa.CellKField[wp_icon],
+    w_now: fa.CellKHalfField[wp_icon],
+    grf_tend_w: fa.CellKHalfField[wp_icon],
+    dtime: wp_icon,
 ) -> tuple[
-    fa.CellKField[wpfloat],
-    fa.CellKField[wpfloat],
-    fa.CellKHalfField[wpfloat],
+    fa.CellKField[wp_icon],
+    fa.CellKField[wp_icon],
+    fa.CellKHalfField[wp_icon],
 ]:
     """Formerly known as _mo_solve_nonhydro_stencil_61."""
     rho_new_wp = rho_now + dtime * grf_tend_rho
@@ -35,16 +35,16 @@ def _update_density_exner_wind(
 
 @gtx.program(grid_type=gtx.GridType.UNSTRUCTURED)
 def update_density_exner_wind(
-    rho_now: fa.CellKField[wpfloat],
-    grf_tend_rho: fa.CellKField[wpfloat],
-    theta_v_now: fa.CellKField[wpfloat],
-    grf_tend_thv: fa.CellKField[wpfloat],
-    w_now: fa.CellKHalfField[wpfloat],
-    grf_tend_w: fa.CellKHalfField[wpfloat],
-    rho_new: fa.CellKField[wpfloat],
-    exner_new: fa.CellKField[wpfloat],
-    w_new: fa.CellKHalfField[wpfloat],
-    dtime: wpfloat,
+    rho_now: fa.CellKField[wp_icon],
+    grf_tend_rho: fa.CellKField[wp_icon],
+    theta_v_now: fa.CellKField[wp_icon],
+    grf_tend_thv: fa.CellKField[wp_icon],
+    w_now: fa.CellKHalfField[wp_icon],
+    grf_tend_w: fa.CellKHalfField[wp_icon],
+    rho_new: fa.CellKField[wp_icon],
+    exner_new: fa.CellKField[wp_icon],
+    w_new: fa.CellKHalfField[wp_icon],
+    dtime: wp_icon,
     horizontal_start: gtx.int32,
     horizontal_end: gtx.int32,
     vertical_start: gtx.int32,

@@ -9,38 +9,42 @@ import gt4py.next as gtx
 from gt4py.next import astype
 
 from icon4py.model.common import dimension as dims, field_type_aliases as fa
-from icon4py.model.common.type_alias import vpfloat, wpfloat
+from icon4py.model.common.type_alias import vpfloat, wp_icon, wpfloat
 
 
 @gtx.field_operator
 def _update_mass_flux_weighted(
-    rho_ic: fa.CellKHalfField[wpfloat],
+    rho_ic: fa.CellKHalfField[wp_icon],
     vwind_expl_wgt: fa.CellField[wpfloat],
     vwind_impl_wgt: fa.CellField[wpfloat],
-    w_now: fa.CellKHalfField[wpfloat],
-    w_new: fa.CellKHalfField[wpfloat],
+    w_now: fa.CellKHalfField[wp_icon],
+    w_new: fa.CellKHalfField[wp_icon],
     w_concorr_c: fa.CellKHalfField[vpfloat],
-    mass_flx_ic: fa.CellKHalfField[wpfloat],
+    mass_flx_ic: fa.CellKHalfField[wp_icon],
     r_nsubsteps: wpfloat,
-) -> fa.CellKHalfField[wpfloat]:
+) -> fa.CellKHalfField[wp_icon]:
     """Formerly known as _mo_solve_nonhydro_stencil_65."""
     w_concorr_c_wp = astype(w_concorr_c, wpfloat)
+    rho_ic_wp, w_now_wp, w_new_wp = astype((rho_ic, w_now, w_new), wpfloat)
 
-    mass_flx_ic_wp = mass_flx_ic + (
-        r_nsubsteps * rho_ic * (vwind_expl_wgt * w_now + vwind_impl_wgt * w_new - w_concorr_c_wp)
+    mass_flx_ic_wp = mass_flx_ic + astype(
+        r_nsubsteps
+        * rho_ic_wp
+        * (vwind_expl_wgt * w_now_wp + vwind_impl_wgt * w_new_wp - w_concorr_c_wp),
+        wp_icon,
     )
     return mass_flx_ic_wp
 
 
 @gtx.program(grid_type=gtx.GridType.UNSTRUCTURED)
 def update_mass_flux_weighted(
-    rho_ic: fa.CellKHalfField[wpfloat],
+    rho_ic: fa.CellKHalfField[wp_icon],
     vwind_expl_wgt: fa.CellField[wpfloat],
     vwind_impl_wgt: fa.CellField[wpfloat],
-    w_now: fa.CellKHalfField[wpfloat],
-    w_new: fa.CellKHalfField[wpfloat],
+    w_now: fa.CellKHalfField[wp_icon],
+    w_new: fa.CellKHalfField[wp_icon],
     w_concorr_c: fa.CellKHalfField[vpfloat],
-    mass_flx_ic: fa.CellKHalfField[wpfloat],
+    mass_flx_ic: fa.CellKHalfField[wp_icon],
     r_nsubsteps: wpfloat,
     horizontal_start: gtx.int32,
     horizontal_end: gtx.int32,

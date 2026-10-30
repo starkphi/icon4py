@@ -12,18 +12,18 @@ from icon4py.model.atmosphere.dycore.dycore_utils import (
     _calculate_fourth_order_divdamp_scaling_coeff,
 )
 from icon4py.model.common import dimension as dims, field_type_aliases as fa
-from icon4py.model.common.type_alias import vpfloat, wpfloat
+from icon4py.model.common.type_alias import vpfloat, wp_icon, wpfloat
 
 
 @gtx.field_operator
 def _apply_4th_order_divergence_damping(
     interpolated_fourth_order_divdamp_factor: fa.KField[wpfloat],
     z_graddiv2_vn: fa.EdgeKField[vpfloat],
-    vn: fa.EdgeKField[wpfloat],
+    vn: fa.EdgeKField[wp_icon],
     divdamp_order: gtx.int32,
     mean_cell_area: wpfloat,
     second_order_divdamp_factor: wpfloat,
-) -> fa.EdgeKField[wpfloat]:
+) -> fa.EdgeKField[wp_icon]:
     """Formerly known as _mo_solve_nonhydro_4th_order_divdamp."""
     scal_divdamp = _calculate_fourth_order_divdamp_scaling_coeff(
         interpolated_fourth_order_divdamp_factor,
@@ -32,7 +32,7 @@ def _apply_4th_order_divergence_damping(
         second_order_divdamp_factor,
     )
     z_graddiv2_vn_wp = astype(z_graddiv2_vn, wpfloat)
-    vn_wp = vn + (scal_divdamp * z_graddiv2_vn_wp)
+    vn_wp = vn + astype(scal_divdamp * z_graddiv2_vn_wp, wp_icon)
     return vn_wp
 
 
@@ -40,7 +40,7 @@ def _apply_4th_order_divergence_damping(
 def apply_4th_order_divergence_damping(
     interpolated_fourth_order_divdamp_factor: fa.KField[wpfloat],
     z_graddiv2_vn: fa.EdgeKField[vpfloat],
-    vn: fa.EdgeKField[wpfloat],
+    vn: fa.EdgeKField[wp_icon],
     divdamp_order: gtx.int32,
     mean_cell_area: wpfloat,
     second_order_divdamp_factor: wpfloat,

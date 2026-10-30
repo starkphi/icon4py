@@ -9,26 +9,26 @@ import gt4py.next as gtx
 from gt4py.next import astype
 
 from icon4py.model.common import dimension as dims, field_type_aliases as fa
-from icon4py.model.common.type_alias import vpfloat, wpfloat
+from icon4py.model.common.type_alias import vpfloat, wp_icon, wpfloat
 
 
 @gtx.field_operator
 def _apply_2nd_order_divergence_damping(
     z_graddiv_vn: fa.EdgeKField[vpfloat],
-    vn: fa.EdgeKField[wpfloat],
+    vn: fa.EdgeKField[wp_icon],
     scal_divdamp_o2: wpfloat,
-) -> fa.EdgeKField[wpfloat]:
+) -> fa.EdgeKField[wp_icon]:
     """Formerly known as _mo_solve_nonhydro_stencil_26."""
     z_graddiv_vn_wp = astype(z_graddiv_vn, wpfloat)
 
-    vn_wp = vn + (scal_divdamp_o2 * z_graddiv_vn_wp)
+    vn_wp = vn + astype(scal_divdamp_o2 * z_graddiv_vn_wp, wp_icon)
     return vn_wp
 
 
 @gtx.program(grid_type=gtx.GridType.UNSTRUCTURED)
 def apply_2nd_order_divergence_damping(
     z_graddiv_vn: fa.EdgeKField[vpfloat],
-    vn: fa.EdgeKField[wpfloat],
+    vn: fa.EdgeKField[wp_icon],
     scal_divdamp_o2: wpfloat,
     horizontal_start: gtx.int32,
     horizontal_end: gtx.int32,

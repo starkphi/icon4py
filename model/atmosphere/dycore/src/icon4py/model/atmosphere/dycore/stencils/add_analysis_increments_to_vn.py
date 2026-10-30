@@ -9,26 +9,26 @@ import gt4py.next as gtx
 from gt4py.next import astype
 
 from icon4py.model.common import dimension as dims, field_type_aliases as fa
-from icon4py.model.common.type_alias import vpfloat, wpfloat
+from icon4py.model.common.type_alias import vpfloat, wp_icon, wpfloat
 
 
 @gtx.field_operator
 def _add_analysis_increments_to_vn(
     vn_incr: fa.EdgeKField[vpfloat],
-    vn: fa.EdgeKField[wpfloat],
+    vn: fa.EdgeKField[wp_icon],
     iau_wgt_dyn: wpfloat,
-) -> fa.EdgeKField[wpfloat]:
+) -> fa.EdgeKField[wp_icon]:
     """Formerly known as _mo_solve_nonhydro_stencil_28."""
     vn_incr_wp = astype(vn_incr, wpfloat)
 
-    vn_wp = vn + (iau_wgt_dyn * vn_incr_wp)
+    vn_wp = vn + astype(iau_wgt_dyn * vn_incr_wp, wp_icon)
     return vn_wp
 
 
 @gtx.program(grid_type=gtx.GridType.UNSTRUCTURED)
 def add_analysis_increments_to_vn(
     vn_incr: fa.EdgeKField[vpfloat],
-    vn: fa.EdgeKField[wpfloat],
+    vn: fa.EdgeKField[wp_icon],
     iau_wgt_dyn: wpfloat,
     horizontal_start: gtx.int32,
     horizontal_end: gtx.int32,

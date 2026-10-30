@@ -17,7 +17,7 @@ from icon4py.model.common.math.vertical_operations import (
     _set_constant_on_model_levels_on_edges_vp,
     _set_constant_on_model_levels_on_edges_wp,
 )
-from icon4py.model.common.type_alias import vpfloat, wpfloat
+from icon4py.model.common.type_alias import vpfloat, wp_icon, wpfloat
 
 
 @gtx.field_operator
@@ -63,16 +63,16 @@ def init_test_fields(  # noqa: PLR0917 [too-many-positional-arguments]
 
 @gtx.program(grid_type=gtx.GridType.UNSTRUCTURED)
 def stencils_61_62(  # noqa: PLR0917 [too-many-positional-arguments]
-    rho_now: fa.CellKField[wpfloat],
-    grf_tend_rho: fa.CellKField[wpfloat],
-    theta_v_now: fa.CellKField[wpfloat],
-    grf_tend_thv: fa.CellKField[wpfloat],
-    w_now: fa.CellKHalfField[wpfloat],
-    grf_tend_w: fa.CellKHalfField[wpfloat],
-    rho_new: fa.CellKField[wpfloat],
-    exner_new: fa.CellKField[wpfloat],
-    w_new: fa.CellKHalfField[wpfloat],
-    dtime: wpfloat,
+    rho_now: fa.CellKField[wp_icon],
+    grf_tend_rho: fa.CellKField[wp_icon],
+    theta_v_now: fa.CellKField[wp_icon],
+    grf_tend_thv: fa.CellKField[wp_icon],
+    w_now: fa.CellKHalfField[wp_icon],
+    grf_tend_w: fa.CellKHalfField[wp_icon],
+    rho_new: fa.CellKField[wp_icon],
+    exner_new: fa.CellKField[wp_icon],
+    w_new: fa.CellKHalfField[wp_icon],
+    dtime: wp_icon,
     horizontal_start: gtx.int32,
     horizontal_end: gtx.int32,
     vertical_start: gtx.int32,
