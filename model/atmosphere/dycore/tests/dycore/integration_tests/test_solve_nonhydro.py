@@ -519,7 +519,7 @@ def test_nonhydro_corrector_step(  # noqa: PLR0917 [too-many-positional-argument
         mass_flx_me=init_savepoint.mass_flx_me(),
         dynamical_vertical_mass_flux_at_cells_on_half_levels=init_savepoint.mass_flx_ic(),
         dynamical_vertical_volumetric_flux_at_cells_on_half_levels=data_alloc.zero_field(
-            icon_grid, dims.CellDim, dims.KHalfDim, allocator=backend
+            icon_grid, dims.CellDim, dims.KHalfDim, allocator=backend, dtype=ta.wp_icon
         ),
     )
 
@@ -719,7 +719,7 @@ def test_run_solve_nonhydro_single_step(  # noqa: PLR0917 [too-many-positional-a
         mass_flx_me=sp.mass_flx_me(),
         dynamical_vertical_mass_flux_at_cells_on_half_levels=sp.mass_flx_ic(),
         dynamical_vertical_volumetric_flux_at_cells_on_half_levels=data_alloc.zero_field(
-            icon_grid, dims.CellDim, dims.KHalfDim, allocator=backend
+            icon_grid, dims.CellDim, dims.KHalfDim, allocator=backend, dtype=ta.wp_icon
         ),
     )
 
@@ -842,7 +842,7 @@ def test_run_solve_nonhydro_multi_step(  # noqa: PLR0917 [too-many-positional-ar
         mass_flx_me=sp.mass_flx_me(),
         dynamical_vertical_mass_flux_at_cells_on_half_levels=sp.mass_flx_ic(),
         dynamical_vertical_volumetric_flux_at_cells_on_half_levels=data_alloc.zero_field(
-            icon_grid, dims.CellDim, dims.KHalfDim, allocator=backend
+            icon_grid, dims.CellDim, dims.KHalfDim, allocator=backend, dtype=ta.wp_icon
         ),
     )
 
