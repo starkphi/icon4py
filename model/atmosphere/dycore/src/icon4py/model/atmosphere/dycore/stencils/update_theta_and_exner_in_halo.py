@@ -7,22 +7,22 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import gt4py.next as gtx
-from gt4py.next import exp, log, where
+from gt4py.next import astype, exp, log, where
 
 from icon4py.model.common import dimension as dims, field_type_aliases as fa
 from icon4py.model.common.constants import PhysicsConstants
-from icon4py.model.common.type_alias import wpfloat
+from icon4py.model.common.type_alias import wp_icon, wpfloat
 
 
 @gtx.field_operator
 def _update_theta_and_exner_in_halo(
     mask_prog_halo_c: fa.CellField[bool],
-    rho_now: fa.CellKField[wpfloat],
-    rho_new: fa.CellKField[wpfloat],
-    theta_v_now: fa.CellKField[wpfloat],
-    exner_now: fa.CellKField[wpfloat],
-    exner_new: fa.CellKField[wpfloat],
-) -> tuple[fa.CellKField[wpfloat], fa.CellKField[wpfloat]]:
+    rho_now: fa.CellKField[wp_icon],
+    rho_new: fa.CellKField[wp_icon],
+    theta_v_now: fa.CellKField[wp_icon],
+    exner_now: fa.CellKField[wp_icon],
+    exner_new: fa.CellKField[wp_icon],
+) -> tuple[fa.CellKField[wp_icon], fa.CellKField[wp_icon]]:
     #
     # ICON (fortran) uses one list (bdy_halo_c) and one mask (mask_prog_halo_c)
     # for these operations. In the halo one is the inverse of the other:
@@ -35,18 +35,29 @@ def _update_theta_and_exner_in_halo(
     # A visual representation can be found at
     # https://github.com/C2SM/icon4py/pull/1066
 
+    rho_new_wp, exner_new_wp = astype((rho_new, exner_new), wpfloat)
+    # theta_v in wp_icon: exner_new / exner_now - 1 cancels
     theta_v_new = where(
         mask_prog_halo_c,
         rho_now
         * theta_v_now
-        * ((exner_new / exner_now - wpfloat("1.0")) * PhysicsConstants.cvd_o_rd + wpfloat("1.0"))
+        * (
+            (exner_new / exner_now - wp_icon("1.0")) * astype(PhysicsConstants.cvd_o_rd, wp_icon)
+            + wp_icon("1.0")
+        )
         / rho_new,
         exner_new,
     )
     exner_new = where(
         mask_prog_halo_c,
         exner_new,
-        exp(PhysicsConstants.rd_o_cvd * log(PhysicsConstants.rd_o_p0ref * rho_new * exner_new)),
+        astype(
+            exp(
+                PhysicsConstants.rd_o_cvd
+                * log(PhysicsConstants.rd_o_p0ref * rho_new_wp * exner_new_wp)
+            ),
+            wp_icon,
+        ),
     )
 
     return theta_v_new, exner_new
@@ -55,12 +66,12 @@ def _update_theta_and_exner_in_halo(
 @gtx.program(grid_type=gtx.GridType.UNSTRUCTURED)
 def update_theta_and_exner_in_halo(
     mask_prog_halo_c: fa.CellField[bool],
-    rho_now: fa.CellKField[wpfloat],
-    rho_new: fa.CellKField[wpfloat],
-    theta_v_now: fa.CellKField[wpfloat],
-    theta_v_new: fa.CellKField[wpfloat],
-    exner_new: fa.CellKField[wpfloat],
-    exner_now: fa.CellKField[wpfloat],
+    rho_now: fa.CellKField[wp_icon],
+    rho_new: fa.CellKField[wp_icon],
+    theta_v_now: fa.CellKField[wp_icon],
+    theta_v_new: fa.CellKField[wp_icon],
+    exner_new: fa.CellKField[wp_icon],
+    exner_now: fa.CellKField[wp_icon],
     horizontal_start: gtx.int32,
     horizontal_end: gtx.int32,
     vertical_start: gtx.int32,

@@ -11,50 +11,63 @@ from gt4py.next import astype
 
 from icon4py.model.common import dimension as dims, field_type_aliases as fa
 from icon4py.model.common.constants import PhysicsConstants
-from icon4py.model.common.type_alias import vpfloat, wpfloat
+from icon4py.model.common.type_alias import vpfloat, wp_icon, wpfloat
 
 
 @gtx.field_operator
 def _compute_results_for_thermodynamic_variables(
-    z_rho_expl: fa.CellKField[wpfloat],
+    z_rho_expl: fa.CellKField[wp_icon],
     vwind_impl_wgt: fa.CellField[wpfloat],
     inv_ddqz_z_full: fa.CellKField[vpfloat],
     rho_ic: fa.CellKHalfField[wpfloat],
-    w: fa.CellKHalfField[wpfloat],
-    z_exner_expl: fa.CellKField[wpfloat],
+    w: fa.CellKHalfField[wp_icon],
+    z_exner_expl: fa.CellKField[wp_icon],
     exner_ref_mc: fa.CellKField[vpfloat],
     z_alpha: fa.CellKHalfField[vpfloat],
     z_beta: fa.CellKField[vpfloat],
-    rho_now: fa.CellKField[wpfloat],
-    theta_v_now: fa.CellKField[wpfloat],
-    exner_now: fa.CellKField[wpfloat],
+    rho_now: fa.CellKField[wp_icon],
+    theta_v_now: fa.CellKField[wp_icon],
+    exner_now: fa.CellKField[wp_icon],
     dtime: wpfloat,
 ) -> tuple[
-    fa.CellKField[wpfloat],
-    fa.CellKField[wpfloat],
-    fa.CellKField[wpfloat],
+    fa.CellKField[wp_icon],
+    fa.CellKField[wp_icon],
+    fa.CellKField[wp_icon],
 ]:
     """Formerly known as _mo_solve_nonhydro_stencil_55."""
-    inv_ddqz_z_full_wp, exner_ref_mc_wp, z_alpha_wp, z_beta_wp = astype(
-        (inv_ddqz_z_full, exner_ref_mc, z_alpha, z_beta), wpfloat
-    )
+    inv_ddqz_z_full_wp, z_alpha_wp, z_beta_wp = astype((inv_ddqz_z_full, z_alpha, z_beta), wpfloat)
+    w_wp = astype(w, wpfloat)
 
-    rho_new_wp = z_rho_expl - vwind_impl_wgt * dtime * inv_ddqz_z_full_wp * (
-        rho_ic(dims.KDim - 0.5) * w(dims.KDim - 0.5) - rho_ic(dims.KDim + 0.5) * w(dims.KDim + 0.5)
+    rho_new_wp = z_rho_expl - astype(
+        vwind_impl_wgt
+        * dtime
+        * inv_ddqz_z_full_wp
+        * (
+            rho_ic(dims.KDim - 0.5) * w_wp(dims.KDim - 0.5)
+            - rho_ic(dims.KDim + 0.5) * w_wp(dims.KDim + 0.5)
+        ),
+        wp_icon,
     )
     exner_new_wp = (
         z_exner_expl
-        + exner_ref_mc_wp
-        - z_beta_wp
-        * (
-            z_alpha_wp(dims.KDim - 0.5) * w(dims.KDim - 0.5)
-            - z_alpha_wp(dims.KDim + 0.5) * w(dims.KDim + 0.5)
+        + astype(exner_ref_mc, wp_icon)
+        - astype(
+            z_beta_wp
+            * (
+                z_alpha_wp(dims.KDim - 0.5) * w_wp(dims.KDim - 0.5)
+                - z_alpha_wp(dims.KDim + 0.5) * w_wp(dims.KDim + 0.5)
+            ),
+            wp_icon,
         )
     )
+    # theta_v in wp_icon: exner_new / exner_now - 1 cancels
     theta_v_new_wp = (
         rho_now
         * theta_v_now
-        * ((exner_new_wp / exner_now - wpfloat("1.0")) * PhysicsConstants.cvd_o_rd + wpfloat("1.0"))
+        * (
+            (exner_new_wp / exner_now - wp_icon("1.0")) * astype(PhysicsConstants.cvd_o_rd, wp_icon)
+            + wp_icon("1.0")
+        )
         / rho_new_wp
     )
     return rho_new_wp, exner_new_wp, theta_v_new_wp
@@ -62,21 +75,21 @@ def _compute_results_for_thermodynamic_variables(
 
 @gtx.program(grid_type=gtx.GridType.UNSTRUCTURED)
 def compute_results_for_thermodynamic_variables(
-    z_rho_expl: fa.CellKField[wpfloat],
+    z_rho_expl: fa.CellKField[wp_icon],
     vwind_impl_wgt: fa.CellField[wpfloat],
     inv_ddqz_z_full: fa.CellKField[vpfloat],
     rho_ic: fa.CellKHalfField[wpfloat],
-    w: fa.CellKHalfField[wpfloat],
-    z_exner_expl: fa.CellKField[wpfloat],
+    w: fa.CellKHalfField[wp_icon],
+    z_exner_expl: fa.CellKField[wp_icon],
     exner_ref_mc: fa.CellKField[vpfloat],
     z_alpha: fa.CellKHalfField[vpfloat],
     z_beta: fa.CellKField[vpfloat],
-    rho_now: fa.CellKField[wpfloat],
-    theta_v_now: fa.CellKField[wpfloat],
-    exner_now: fa.CellKField[wpfloat],
-    rho_new: fa.CellKField[wpfloat],
-    exner_new: fa.CellKField[wpfloat],
-    theta_v_new: fa.CellKField[wpfloat],
+    rho_now: fa.CellKField[wp_icon],
+    theta_v_now: fa.CellKField[wp_icon],
+    exner_now: fa.CellKField[wp_icon],
+    rho_new: fa.CellKField[wp_icon],
+    exner_new: fa.CellKField[wp_icon],
+    theta_v_new: fa.CellKField[wp_icon],
     dtime: wpfloat,
     horizontal_start: gtx.int32,
     horizontal_end: gtx.int32,

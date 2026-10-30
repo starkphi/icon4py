@@ -6,10 +6,10 @@
 # Please, refer to the LICENSE file in the root directory.
 # SPDX-License-Identifier: BSD-3-Clause
 import gt4py.next as gtx
-from gt4py.next import abs, maximum  # noqa: A004
+from gt4py.next import abs, astype, maximum  # noqa: A004
 
 from icon4py.model.common import field_type_aliases as fa
-from icon4py.model.common.type_alias import wpfloat
+from icon4py.model.common.type_alias import wp_icon, wpfloat
 
 
 @gtx.field_operator
@@ -101,15 +101,15 @@ def calculate_divdamp_fields(  # noqa: PLR0917 [too-many-positional-arguments]
 
 @gtx.field_operator
 def _compute_rayleigh_damping_factor(
-    rayleigh_w: fa.KHalfField[wpfloat], dtime: wpfloat
-) -> fa.KHalfField[wpfloat]:
-    return wpfloat(1.0) / (wpfloat(1.0) + dtime * rayleigh_w)
+    rayleigh_w: fa.KHalfField[wpfloat], dtime: wp_icon
+) -> fa.KHalfField[wp_icon]:
+    return wp_icon(1.0) / (wp_icon(1.0) + dtime * astype(rayleigh_w, wp_icon))
 
 
 @gtx.program
 def compute_rayleigh_damping_factor(
     rayleigh_w: fa.KHalfField[wpfloat],
-    dtime: wpfloat,
-    rayleigh_damping_factor: fa.KHalfField[wpfloat],
+    dtime: wp_icon,
+    rayleigh_damping_factor: fa.KHalfField[wp_icon],
 ) -> None:
     _compute_rayleigh_damping_factor(rayleigh_w, dtime, out=rayleigh_damping_factor)

@@ -9,7 +9,7 @@ import gt4py.next as gtx
 from gt4py.next import astype
 
 from icon4py.model.common import dimension as dims, field_type_aliases as fa
-from icon4py.model.common.type_alias import vpfloat, wpfloat
+from icon4py.model.common.type_alias import vpfloat, wp_icon, wpfloat
 
 
 @gtx.scan_operator(
@@ -17,16 +17,16 @@ from icon4py.model.common.type_alias import vpfloat, wpfloat
     forward=True,
     init=(  # type: ignore[call-overload] # GT4Py misses type hint for tuples here
         vpfloat("0.0"),
-        wpfloat("0.0"),
+        wp_icon("0.0"),
     ),  # boundary condition for upper tridiagonal element and w at model top
 )
 def tridiagonal_forward_sweep_for_w(
-    state_kminus1: tuple[vpfloat, wpfloat],
+    state_kminus1: tuple[vpfloat, wp_icon],
     a: vpfloat,
     b: vpfloat,
     c: vpfloat,
-    d: wpfloat,
-) -> tuple[wpfloat, wpfloat]:
+    d: wp_icon,
+) -> tuple[vpfloat, wp_icon]:
     """
     |  1   0                  |  | w_0 |    |  0  |          | 1   0                     |  | w_0 |    |  0     |
     | a_1 b_1 c_1             |  | w_1 |    | d_1 |          | 0   1  cnew_1             |  | w_1 |    | dnew_1 |
@@ -39,7 +39,7 @@ def tridiagonal_forward_sweep_for_w(
     d_kminus1 = state_kminus1[1]
     normalization = vpfloat("1.0") / (b + a * c_kminus1)  # normalize diagonal element to 1
     c_new = (vpfloat("0.0") - c) * normalization
-    d_new = (d - astype(a, wpfloat) * d_kminus1) * astype(normalization, wpfloat)
+    d_new = (d - astype(a, wp_icon) * d_kminus1) * astype(normalization, wp_icon)
     return c_new, d_new  # return type hints for scan operators broken in GT4Py
 
 
@@ -50,11 +50,11 @@ def _solve_tridiagonal_matrix_for_w_forward_sweep(
     ddqz_z_half: fa.CellKHalfField[vpfloat],
     z_alpha: fa.CellKHalfField[vpfloat],
     z_beta: fa.CellKField[vpfloat],
-    z_w_expl: fa.CellKHalfField[wpfloat],
-    z_exner_expl: fa.CellKField[wpfloat],
+    z_w_expl: fa.CellKHalfField[wp_icon],
+    z_exner_expl: fa.CellKField[wp_icon],
     dtime: wpfloat,
     cpd: wpfloat,
-) -> tuple[fa.CellKHalfField[vpfloat], fa.CellKHalfField[wpfloat]]:
+) -> tuple[fa.CellKHalfField[vpfloat], fa.CellKHalfField[wp_icon]]:
     """Formerly known as _mo_solve_nonhydro_stencil_52."""
     ddqz_z_half_wp = astype(ddqz_z_half, wpfloat)
 
@@ -64,7 +64,7 @@ def _solve_tridiagonal_matrix_for_w_forward_sweep(
     z_b = vpfloat("1.0") + z_gamma_vp * z_alpha * (
         z_beta(dims.KHalfDim - 0.5) + z_beta(dims.KHalfDim + 0.5)
     )
-    z_gamma_wp = astype(z_gamma_vp, wpfloat)
+    z_gamma_wp = astype(z_gamma_vp, wp_icon)
     w_prep = z_w_expl - z_gamma_wp * (
         z_exner_expl(dims.KHalfDim - 0.5) - z_exner_expl(dims.KHalfDim + 0.5)
     )
@@ -79,10 +79,10 @@ def solve_tridiagonal_matrix_for_w_forward_sweep(
     ddqz_z_half: fa.CellKHalfField[vpfloat],
     z_alpha: fa.CellKHalfField[vpfloat],
     z_beta: fa.CellKField[vpfloat],
-    z_w_expl: fa.CellKHalfField[wpfloat],
-    z_exner_expl: fa.CellKField[wpfloat],
+    z_w_expl: fa.CellKHalfField[wp_icon],
+    z_exner_expl: fa.CellKField[wp_icon],
     z_q: fa.CellKHalfField[vpfloat],
-    w: fa.CellKHalfField[wpfloat],
+    w: fa.CellKHalfField[wp_icon],
     dtime: wpfloat,
     cpd: wpfloat,
     horizontal_start: gtx.int32,

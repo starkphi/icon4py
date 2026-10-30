@@ -9,53 +9,59 @@ import gt4py.next as gtx
 from gt4py.next import astype
 
 from icon4py.model.common import dimension as dims, field_type_aliases as fa
-from icon4py.model.common.type_alias import vpfloat, wpfloat
+from icon4py.model.common.type_alias import vpfloat, wp_icon, wpfloat
 
 
 @gtx.field_operator
 def _compute_explicit_part_for_rho_and_exner(
-    rho_nnow: fa.CellKField[wpfloat],
+    rho_nnow: fa.CellKField[wp_icon],
     inv_ddqz_z_full: fa.CellKField[vpfloat],
     z_flxdiv_mass: fa.CellKField[vpfloat],
     z_contr_w_fl_l: fa.CellKHalfField[wpfloat],
-    exner_pr: fa.CellKField[wpfloat],
+    exner_pr: fa.CellKField[wp_icon],
     z_beta: fa.CellKField[vpfloat],
     z_flxdiv_theta: fa.CellKField[vpfloat],
     theta_v_ic: fa.CellKHalfField[wpfloat],
     ddt_exner_phy: fa.CellKField[vpfloat],
     dtime: wpfloat,
-) -> tuple[fa.CellKField[wpfloat], fa.CellKField[wpfloat]]:
+) -> tuple[fa.CellKField[wp_icon], fa.CellKField[wp_icon]]:
     """Formerly known as _mo_solve_nonhydro_stencil_48 or _mo_solve_nonhydro_stencil_49."""
     inv_ddqz_z_full_wp, z_flxdiv_mass_wp, z_beta_wp, z_flxdiv_theta_wp, ddt_exner_phy_wp = astype(
         (inv_ddqz_z_full, z_flxdiv_mass, z_beta, z_flxdiv_theta, ddt_exner_phy), wpfloat
     )
 
-    z_rho_expl_wp = rho_nnow - dtime * inv_ddqz_z_full_wp * (
-        z_flxdiv_mass_wp + z_contr_w_fl_l(dims.KDim - 0.5) - z_contr_w_fl_l(dims.KDim + 0.5)
+    z_rho_expl_wp = rho_nnow - astype(
+        dtime
+        * inv_ddqz_z_full_wp
+        * (z_flxdiv_mass_wp + z_contr_w_fl_l(dims.KDim - 0.5) - z_contr_w_fl_l(dims.KDim + 0.5)),
+        wp_icon,
     )
 
     z_exner_expl_wp = (
         exner_pr
-        - z_beta_wp
-        * (
-            z_flxdiv_theta_wp
-            + theta_v_ic(dims.KDim - 0.5) * z_contr_w_fl_l(dims.KDim - 0.5)
-            - theta_v_ic(dims.KDim + 0.5) * z_contr_w_fl_l(dims.KDim + 0.5)
+        - astype(
+            z_beta_wp
+            * (
+                z_flxdiv_theta_wp
+                + theta_v_ic(dims.KDim - 0.5) * z_contr_w_fl_l(dims.KDim - 0.5)
+                - theta_v_ic(dims.KDim + 0.5) * z_contr_w_fl_l(dims.KDim + 0.5)
+            ),
+            wp_icon,
         )
-        + dtime * ddt_exner_phy_wp
+        + astype(dtime * ddt_exner_phy_wp, wp_icon)
     )
     return z_rho_expl_wp, z_exner_expl_wp
 
 
 @gtx.program(grid_type=gtx.GridType.UNSTRUCTURED)
 def compute_explicit_part_for_rho_and_exner(
-    z_rho_expl: fa.CellKField[wpfloat],
-    z_exner_expl: fa.CellKField[wpfloat],
-    rho_nnow: fa.CellKField[wpfloat],
+    z_rho_expl: fa.CellKField[wp_icon],
+    z_exner_expl: fa.CellKField[wp_icon],
+    rho_nnow: fa.CellKField[wp_icon],
     inv_ddqz_z_full: fa.CellKField[vpfloat],
     z_flxdiv_mass: fa.CellKField[vpfloat],
     z_contr_w_fl_l: fa.CellKHalfField[wpfloat],
-    exner_pr: fa.CellKField[wpfloat],
+    exner_pr: fa.CellKField[wp_icon],
     z_beta: fa.CellKField[vpfloat],
     z_flxdiv_theta: fa.CellKField[vpfloat],
     theta_v_ic: fa.CellKHalfField[wpfloat],
