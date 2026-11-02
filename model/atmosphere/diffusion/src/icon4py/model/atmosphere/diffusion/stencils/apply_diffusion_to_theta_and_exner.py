@@ -55,7 +55,7 @@ def _apply_diffusion_to_theta_and_exner(
                 geofac_n2s_c,
                 geofac_n2s_nbh,
                 vcoef,
-                astype(theta_v, wpfloat),
+                theta_v,
                 z_temp,
             ),
             z_temp,

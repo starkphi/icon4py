@@ -11,7 +11,7 @@ from gt4py.next.experimental import as_offset
 
 from icon4py.model.common import dimension as dims, field_type_aliases as fa
 from icon4py.model.common.dimension import C2E2C, Koff
-from icon4py.model.common.type_alias import vpfloat, wpfloat
+from icon4py.model.common.type_alias import vpfloat, wp_icon, wpfloat
 
 
 @gtx.field_operator
@@ -21,21 +21,29 @@ def _truly_horizontal_diffusion_nabla_of_theta_over_steep_points(
     geofac_n2s_c: fa.CellField[wpfloat],
     geofac_n2s_nbh: gtx.Field[gtx.Dims[dims.CellDim, dims.C2E2CDim], wpfloat],
     vcoef: gtx.Field[gtx.Dims[dims.CellDim, dims.C2E2CDim, dims.KDim], wpfloat],
-    theta_v: fa.CellKField[wpfloat],
+    theta_v: fa.CellKField[wp_icon],
     z_temp: fa.CellKField[vpfloat],
 ) -> fa.CellKField[vpfloat]:
     z_temp_wp = astype(z_temp, wpfloat)
 
-    theta_v_0 = theta_v(C2E2C[0])(as_offset(Koff, zd_vertoffset[dims.C2E2CDim(0)]))
-    theta_v_1 = theta_v(C2E2C[1])(as_offset(Koff, zd_vertoffset[dims.C2E2CDim(1)]))
-    theta_v_2 = theta_v(C2E2C[2])(as_offset(Koff, zd_vertoffset[dims.C2E2CDim(2)]))
+    # theta_v is ICON's field (wp_icon): cast each value after the dynamic shift, not the field before
+    # it (DaCe cannot give a cast read through a dynamic offset a domain)
+    theta_v_0 = astype(theta_v(C2E2C[0])(as_offset(Koff, zd_vertoffset[dims.C2E2CDim(0)])), wpfloat)
+    theta_v_1 = astype(theta_v(C2E2C[1])(as_offset(Koff, zd_vertoffset[dims.C2E2CDim(1)])), wpfloat)
+    theta_v_2 = astype(theta_v(C2E2C[2])(as_offset(Koff, zd_vertoffset[dims.C2E2CDim(2)])), wpfloat)
 
-    theta_v_0_m1 = theta_v(C2E2C[0])(as_offset(Koff, zd_vertoffset[dims.C2E2CDim(0)] + 1))
-    theta_v_1_m1 = theta_v(C2E2C[1])(as_offset(Koff, zd_vertoffset[dims.C2E2CDim(1)] + 1))
-    theta_v_2_m1 = theta_v(C2E2C[2])(as_offset(Koff, zd_vertoffset[dims.C2E2CDim(2)] + 1))
+    theta_v_0_m1 = astype(
+        theta_v(C2E2C[0])(as_offset(Koff, zd_vertoffset[dims.C2E2CDim(0)] + 1)), wpfloat
+    )
+    theta_v_1_m1 = astype(
+        theta_v(C2E2C[1])(as_offset(Koff, zd_vertoffset[dims.C2E2CDim(1)] + 1)), wpfloat
+    )
+    theta_v_2_m1 = astype(
+        theta_v(C2E2C[2])(as_offset(Koff, zd_vertoffset[dims.C2E2CDim(2)] + 1)), wpfloat
+    )
 
     sum_tmp = (
-        theta_v * geofac_n2s_c
+        astype(theta_v, wpfloat) * geofac_n2s_c
         + geofac_n2s_nbh[dims.C2E2CDim(0)]
         * (
             vcoef[dims.C2E2CDim(0)] * theta_v_0
@@ -67,7 +75,7 @@ def truly_horizontal_diffusion_nabla_of_theta_over_steep_points(
     geofac_n2s_c: fa.CellField[wpfloat],
     geofac_n2s_nbh: gtx.Field[gtx.Dims[dims.CellDim, dims.C2E2CDim], wpfloat],
     vcoef: gtx.Field[gtx.Dims[dims.CellDim, dims.C2E2CDim, dims.KDim], wpfloat],
-    theta_v: fa.CellKField[wpfloat],
+    theta_v: fa.CellKField[wp_icon],
     z_temp: fa.CellKField[vpfloat],
     horizontal_start: gtx.int32,
     horizontal_end: gtx.int32,

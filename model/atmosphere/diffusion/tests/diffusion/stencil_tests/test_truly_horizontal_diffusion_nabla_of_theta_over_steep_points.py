@@ -16,7 +16,7 @@ from icon4py.model.atmosphere.diffusion.stencils.truly_horizontal_diffusion_nabl
 )
 from icon4py.model.common import dimension as dims
 from icon4py.model.common.grid import base
-from icon4py.model.common.type_alias import vpfloat, wpfloat
+from icon4py.model.common.type_alias import vpfloat, wp_icon, wpfloat
 from icon4py.model.testing import stencil_tests
 
 
@@ -111,7 +111,7 @@ class TestTrulyHorizontalDiffusionNablaOfThetaOverSteepPoints(stencil_tests.Sten
         geofac_n2s_c = data_alloc.random_field(dims.CellDim, dtype=wpfloat)
         geofac_n2s_nbh = data_alloc.random_field(dims.CellDim, dims.C2E2CDim, dtype=wpfloat)
         vcoef = data_alloc.random_field(dims.CellDim, dims.C2E2CDim, dims.KDim, dtype=wpfloat)
-        theta_v = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=wpfloat)
+        theta_v = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=wp_icon)
         z_temp = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=vpfloat)
 
         return dict(
