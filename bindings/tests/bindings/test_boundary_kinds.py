@@ -364,6 +364,9 @@ def test_every_field_argument_is_a_view_or_a_converted_copy(monkeypatch, transpo
     assert set(copied) == _expected_copies()
 
 
+_RUNTIME_CALLS = frozenset({"solve_nh_run", "solve_nh_substeps_run", "diffusion_run"})
+
+
 def _expected_copies() -> set[str]:
     """Float fields whose ICON dtype differs from icon4py's, derived from the ICON oracle."""
     icon_vp_is_single = config.ICON_PRECISION == "mixed"
@@ -374,8 +377,15 @@ def _expected_copies() -> set[str]:
         icon_is_single = config.ICON_PRECISION == "single" or (
             icon_vp_is_single and name in ICON_VP_ARGUMENTS[fun_name]
         )
-        # icon4py computes every float field in single or in double, never mixed, here
-        compute_is_single = ta.precision == "single"
+        if ta.precision == "remixed":
+            # ICON-wp arguments of the runtime calls stay in ICON's f64 (`wp_icon`); everything
+            # else, incl. every init-time field, is f32 (kb icon4py-remixed-spec, design change)
+            compute_is_single = not (
+                fun_name in _RUNTIME_CALLS and name not in ICON_VP_ARGUMENTS[fun_name]
+            )
+        else:
+            # icon4py computes every float field in single or in double, never mixed, here
+            compute_is_single = ta.precision == "single"
         if icon_is_single != compute_is_single:
             expected.add(f"{fun_name}.{name}")
     return expected
