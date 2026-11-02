@@ -25,7 +25,7 @@ from icon4py.model.testing import definitions as test_defs, test_utils as testin
 from icon4py.tools import py2fgen
 from icon4py.tools.py2fgen import test_utils
 
-from . import utils
+from . import icon_dtypes, utils
 from .in_guard import in_arguments_unchanged
 from .test_grid_init import grid_init
 
@@ -1235,7 +1235,11 @@ def _multi_step_arrays(sp, icon_grid, linit: bool) -> dict[str, np.ndarray]:
         "rho_new": sp.rho_new().ndarray,
         "exner_new": sp.exner_new().ndarray,
     }
-    return {name: np.array(array, copy=True) for name, array in arrays.items()}
+    # in the dtype ICON passes: per-call results then cross substeps exactly as in ICON
+    return icon_dtypes.as_icon_arrays(
+        "solve_nh_run",
+        {name: np.array(array, copy=True) for name, array in arrays.items()},
+    )
 
 
 def _array_infos(arrays: dict[str, np.ndarray]) -> dict:
