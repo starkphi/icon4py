@@ -227,6 +227,11 @@ class GHexMultiNodeExchange(decomp_defs.ExchangeRuntime):
         self._patterns = {dim: self._create_pattern(dim) for dim in dims.horizontal_dims()}
         log.info(f"patterns for dimensions {self._patterns.keys()} initialized ")
         self._comm = make_communication_object(self._context)
+        # GHEX builds with a double+float overload exchange mixed precision fields in one call
+        exchange_fn = (
+            self._comm.schedule_exchange if ghex.__config__["gpu"] else self._comm.exchange
+        )
+        self._has_mixed_dtype_exchange = "patterns_float" in (exchange_fn.__doc__ or "")
 
         self._applied_patterns_cache: dict = {}
 
@@ -327,16 +332,48 @@ class GHexMultiNodeExchange(decomp_defs.ExchangeRuntime):
         )
 
         applied_patterns = [self._get_applied_pattern(dim, f) for f in fields]
-        if not ghex.__config__["gpu"]:
+        # GHEX's Python binding takes one value type per call: one exchange per dtype, all but the
+        # last finished here (one exchange in flight per communication object). GHEX's C++
+        # `exchange` already packs mixed types into one message; it only lacks the binding (and,
+        # on GPU, a multi-range `schedule_exchange`). The one-call path below uses it if present.
+        patterns_by_dtype: dict[np.dtype, list[Any]] = {}
+        for f, pattern in zip(fields, applied_patterns, strict=True):
+            dtype = f.ndarray.dtype if isinstance(f, gtx.Field) else f.dtype
+            patterns_by_dtype.setdefault(dtype, []).append(pattern)
+        *earlier_groups, last_group = patterns_by_dtype.values()
+        one_mixed_exchange = self._has_mixed_dtype_exchange and patterns_by_dtype.keys() == {
+            np.dtype(np.float64),
+            np.dtype(np.float32),
+        }
+        if one_mixed_exchange:
+            patterns_double = patterns_by_dtype[np.dtype(np.float64)]
+            patterns_float = patterns_by_dtype[np.dtype(np.float32)]
+            if not ghex.__config__["gpu"]:
+                handle = self._comm.exchange(
+                    patterns_double=patterns_double, patterns_float=patterns_float
+                )
+            else:
+                assert stream is not None
+                handle = self._comm.schedule_exchange(
+                    stream=stream, patterns_double=patterns_double, patterns_float=patterns_float
+                )
+        elif not ghex.__config__["gpu"]:
             # No GPU support fall back to the regular exchange function.
-            handle = self._comm.exchange(applied_patterns)
+            for patterns in earlier_groups:
+                self._comm.exchange(patterns).wait()
+            handle = self._comm.exchange(last_group)
         else:
             assert stream is not None
+            for patterns in earlier_groups:
+                self._comm.schedule_exchange(patterns=patterns, stream=stream).schedule_wait(stream)
             handle = self._comm.schedule_exchange(
-                patterns=applied_patterns,
+                patterns=last_group,
                 stream=stream,
             )
-        log.debug(f"exchange for {len(fields)} fields of dimension ='{dim.value}' initiated.")
+        log.debug(
+            f"exchange for {len(fields)} fields of dimension ='{dim.value}' initiated "
+            f"({1 if one_mixed_exchange else len(patterns_by_dtype)} GHEX exchange(s))."
+        )
         return MultiNodeResult(handle, applied_patterns)
 
     def exchange(
