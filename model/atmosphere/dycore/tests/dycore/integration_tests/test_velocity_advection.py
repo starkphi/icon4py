@@ -86,7 +86,8 @@ def test_extra_diffusion_constants_match_icon(experiment, step_date_init, savepo
     dtime = savepoint_velocity_init.dtime()
     assert VerticalCflConstants.W_LIMIT / dtime == savepoint_velocity_init.cfl_w_limit()
     assert VerticalCflConstants.EXTRA_DIFFUSION_SCALING / dtime == pytest.approx(
-        savepoint_velocity_init.scalfac_exdiff(), rel=1e-14
+        savepoint_velocity_init.scalfac_exdiff(),
+        rel=1e-14 if test_utils.wp_is_dp else 4 * constants.WP_EPS,
     )
 
 
