@@ -93,18 +93,18 @@ class TestComputeExplicitPartForRhoAndExner(stencil_tests.StencilTest):
         data_alloc: stencil_tests.DataAllocationWrapper, grid: base.Grid
     ) -> dict[str, gtx.Field | state_utils.ScalarType]:
         dtime = ta.wpfloat("1.0")
-        rho_nnow = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=ta.wpfloat)
+        rho_nnow = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=ta.wp_icon)
         inv_ddqz_z_full = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=ta.vpfloat)
         z_flxdiv_mass = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=ta.vpfloat)
         z_contr_w_fl_l = data_alloc.random_field(dims.CellDim, dims.KHalfDim, dtype=ta.wpfloat)
-        exner_pr = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=ta.wpfloat)
+        exner_pr = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=ta.wp_icon)
         z_beta = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=ta.vpfloat)
         z_flxdiv_theta = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=ta.vpfloat)
         theta_v_ic = data_alloc.random_field(dims.CellDim, dims.KHalfDim, dtype=ta.wpfloat)
         ddt_exner_phy = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=ta.vpfloat)
 
-        z_rho_expl = data_alloc.zero_field(dims.CellDim, dims.KDim, dtype=ta.wpfloat)
-        z_exner_expl = data_alloc.zero_field(dims.CellDim, dims.KDim, dtype=ta.wpfloat)
+        z_rho_expl = data_alloc.zero_field(dims.CellDim, dims.KDim, dtype=ta.wp_icon)
+        z_exner_expl = data_alloc.zero_field(dims.CellDim, dims.KDim, dtype=ta.wp_icon)
 
         return dict(
             z_rho_expl=z_rho_expl,

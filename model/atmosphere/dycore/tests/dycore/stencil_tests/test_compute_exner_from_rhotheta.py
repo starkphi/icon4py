@@ -16,7 +16,7 @@ from icon4py.model.atmosphere.dycore.stencils.compute_exner_from_rhotheta import
 )
 from icon4py.model.common import dimension as dims
 from icon4py.model.common.grid import base
-from icon4py.model.common.type_alias import wpfloat
+from icon4py.model.common.type_alias import wp_icon, wpfloat
 from icon4py.model.testing import stencil_tests
 
 
@@ -44,11 +44,11 @@ class TestComputeExnerFromRhotheta(stencil_tests.StencilTest):
     ) -> dict[str, Any]:
         rd_o_cvd = wpfloat("10.0")
         rd_o_p0ref = wpfloat("20.0")
-        rho = data_alloc.random_field(dims.CellDim, dims.KDim, low=1, high=2, dtype=wpfloat)
-        exner = data_alloc.random_field(dims.CellDim, dims.KDim, low=1, high=2, dtype=wpfloat)
-        theta_v = data_alloc.zero_field(dims.CellDim, dims.KDim, dtype=wpfloat)
+        rho = data_alloc.random_field(dims.CellDim, dims.KDim, low=1, high=2, dtype=wp_icon)
+        exner = data_alloc.random_field(dims.CellDim, dims.KDim, low=1, high=2, dtype=wp_icon)
+        theta_v = data_alloc.zero_field(dims.CellDim, dims.KDim, dtype=wp_icon)
         # a buffer of its own: `out` must not alias the `exner` the program reads
-        exner_out = data_alloc.zero_field(dims.CellDim, dims.KDim, dtype=wpfloat)
+        exner_out = data_alloc.zero_field(dims.CellDim, dims.KDim, dtype=wp_icon)
 
         return dict(
             rho=rho,

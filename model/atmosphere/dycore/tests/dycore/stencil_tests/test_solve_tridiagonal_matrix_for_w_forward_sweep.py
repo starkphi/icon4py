@@ -103,12 +103,12 @@ class TestSolveTridiagonalMatrixForWForwardSweep(stencil_tests.StencilTest):
         ddqz_z_half = data_alloc.random_field(dims.CellDim, dims.KHalfDim, dtype=ta.vpfloat)
         z_alpha = data_alloc.random_field(dims.CellDim, dims.KHalfDim, dtype=ta.vpfloat)
         z_beta = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=ta.vpfloat)
-        z_exner_expl = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=ta.wpfloat)
-        z_w_expl = data_alloc.random_field(dims.CellDim, dims.KHalfDim, dtype=ta.wpfloat)
+        z_exner_expl = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=ta.wp_icon)
+        z_w_expl = data_alloc.random_field(dims.CellDim, dims.KHalfDim, dtype=ta.wp_icon)
         z_q = data_alloc.random_field(dims.CellDim, dims.KHalfDim, dtype=ta.vpfloat)
         # z_q first level should always be initialized to zero when solve_tridiagonal_matrix_for_w_forward_sweep is called
         z_q.ndarray[:, 0] = 0.0  # type: ignore[index]
-        w = data_alloc.random_field(dims.CellDim, dims.KHalfDim, dtype=ta.wpfloat)
+        w = data_alloc.random_field(dims.CellDim, dims.KHalfDim, dtype=ta.wp_icon)
         # w first level should always be initialized to zero when solve_tridiagonal_matrix_for_w_forward_sweep is called
         w.ndarray[:, 0] = 0.0  # type: ignore[index]
 

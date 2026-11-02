@@ -17,6 +17,7 @@ from icon4py.model.atmosphere.dycore.stencils.vertically_implicit_dycore_solver 
 from icon4py.model.common import constants, dimension as dims, type_alias as ta
 from icon4py.model.common.grid import base, horizontal as h_grid
 from icon4py.model.common.states import utils as state_utils
+from icon4py.model.common.type_alias import vpfloat, wp_icon, wpfloat
 from icon4py.model.testing import stencil_tests
 
 from .test_add_analysis_increments_from_data_assimilation import (
@@ -413,13 +414,19 @@ class TestVerticallyImplicitSolverAtPredictorStep(stencil_tests.StencilTest):
         grid: base.Grid,
         request: pytest.FixtureRequest,
     ) -> dict[str, gtx.Field | state_utils.ScalarType]:
-        geofac_div = data_alloc.random_field(dims.CellDim, dims.C2EDim)
+        geofac_div = data_alloc.random_field(dims.CellDim, dims.C2EDim, dtype=wpfloat)
         mass_flux_at_edges_on_model_levels = data_alloc.random_field(dims.EdgeDim, dims.KDim)
-        theta_v_flux_at_edges_on_model_levels = data_alloc.random_field(dims.EdgeDim, dims.KDim)
-        predictor_vertical_wind_advective_tendency = data_alloc.random_field(
-            dims.CellDim, dims.KHalfDim
+        theta_v_flux_at_edges_on_model_levels = data_alloc.random_field(
+            dims.EdgeDim, dims.KDim, dtype=wpfloat
         )
-        nonhydro_buoy_at_cells_on_half_levels = data_alloc.random_field(dims.CellDim, dims.KHalfDim)
+        predictor_vertical_wind_advective_tendency = data_alloc.random_field(
+            dims.CellDim,
+            dims.KHalfDim,
+            dtype=vpfloat,
+        )
+        nonhydro_buoy_at_cells_on_half_levels = data_alloc.random_field(
+            dims.CellDim, dims.KHalfDim, dtype=vpfloat
+        )
         rho_at_cells_on_half_levels = data_alloc.random_field(
             dims.CellDim, dims.KHalfDim, low=1.0e-5
         )
@@ -427,35 +434,52 @@ class TestVerticallyImplicitSolverAtPredictorStep(stencil_tests.StencilTest):
             dims.CellDim, dims.KHalfDim
         )
         contravariant_correction_at_edges_on_model_levels = data_alloc.random_field(
-            dims.EdgeDim, dims.KDim
+            dims.EdgeDim,
+            dims.KDim,
+            dtype=vpfloat,
         )
-        exner_w_explicit_weight_parameter = data_alloc.random_field(dims.CellDim)
+        exner_w_explicit_weight_parameter = data_alloc.random_field(dims.CellDim, dtype=wpfloat)
         current_exner = data_alloc.random_field(dims.CellDim, dims.KDim, low=1.0e-5)
         current_rho = data_alloc.random_field(dims.CellDim, dims.KDim, low=1.0e-5)
         current_theta_v = data_alloc.random_field(dims.CellDim, dims.KDim, low=1.0e-5)
         current_w = data_alloc.random_field(dims.CellDim, dims.KHalfDim)
-        inv_ddqz_z_full = data_alloc.random_field(dims.CellDim, dims.KDim, low=1.0e-5)
-        exner_w_implicit_weight_parameter = data_alloc.random_field(dims.CellDim)
+        inv_ddqz_z_full = data_alloc.random_field(
+            dims.CellDim, dims.KDim, low=1.0e-5, dtype=vpfloat
+        )
+        exner_w_implicit_weight_parameter = data_alloc.random_field(dims.CellDim, dtype=wpfloat)
         theta_v_at_cells_on_half_levels = data_alloc.random_field(
             dims.CellDim, dims.KHalfDim, low=1.0e-5
         )
         perturbed_exner_at_cells_on_model_levels = data_alloc.random_field(dims.CellDim, dims.KDim)
-        exner_tendency_due_to_slow_physics = data_alloc.random_field(dims.CellDim, dims.KDim)
-        rho_iau_increment = data_alloc.random_field(dims.CellDim, dims.KDim)
-        exner_iau_increment = data_alloc.random_field(dims.CellDim, dims.KDim)
-        ddqz_z_half = data_alloc.random_field(dims.CellDim, dims.KHalfDim, low=1.0e-5)
+        exner_tendency_due_to_slow_physics = data_alloc.random_field(
+            dims.CellDim, dims.KDim, dtype=vpfloat
+        )
+        rho_iau_increment = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=vpfloat)
+        exner_iau_increment = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=vpfloat)
+        ddqz_z_half = data_alloc.random_field(
+            dims.CellDim, dims.KHalfDim, low=1.0e-5, dtype=vpfloat
+        )
         rayleigh_damping_factor = data_alloc.random_field(dims.KHalfDim)
         reference_exner_at_cells_on_model_levels = data_alloc.random_field(
-            dims.CellDim, dims.KDim, low=1.0e-5
+            dims.CellDim,
+            dims.KDim,
+            low=1.0e-5,
+            dtype=vpfloat,
         )
-        e_bln_c_s = data_alloc.random_field(dims.CellDim, dims.C2EDim, low=1.0e-5, high=0.99999)
-        wgtfac_c = data_alloc.random_field(dims.CellDim, dims.KHalfDim, low=1.0e-5, high=0.99999)
-        wgtfacq_c = data_alloc.random_field(dims.CellDim, dims.KDim, low=1.0e-5, high=0.99999)
+        e_bln_c_s = data_alloc.random_field(
+            dims.CellDim, dims.C2EDim, low=1.0e-5, high=0.99999, dtype=wpfloat
+        )
+        wgtfac_c = data_alloc.random_field(
+            dims.CellDim, dims.KHalfDim, low=1.0e-5, high=0.99999, dtype=vpfloat
+        )
+        wgtfacq_c = data_alloc.random_field(
+            dims.CellDim, dims.KDim, low=1.0e-5, high=0.99999, dtype=vpfloat
+        )
 
-        next_w = data_alloc.zero_field(dims.CellDim, dims.KHalfDim)
-        next_rho = data_alloc.constant_field(1.0e-5, dims.CellDim, dims.KDim)
-        next_exner = data_alloc.constant_field(1.0e-5, dims.CellDim, dims.KDim)
-        next_theta_v = data_alloc.constant_field(1.0e-5, dims.CellDim, dims.KDim)
+        next_w = data_alloc.zero_field(dims.CellDim, dims.KHalfDim, dtype=wp_icon)
+        next_rho = data_alloc.constant_field(1.0e-5, dims.CellDim, dims.KDim, dtype=wp_icon)
+        next_exner = data_alloc.constant_field(1.0e-5, dims.CellDim, dims.KDim, dtype=wp_icon)
+        next_theta_v = data_alloc.constant_field(1.0e-5, dims.CellDim, dims.KDim, dtype=wp_icon)
         dwdz_at_cells_on_model_levels = data_alloc.zero_field(dims.CellDim, dims.KDim)
         exner_dynamical_increment = data_alloc.zero_field(dims.CellDim, dims.KDim)
 
@@ -466,8 +490,8 @@ class TestVerticallyImplicitSolverAtPredictorStep(stencil_tests.StencilTest):
         end_index_of_damping_layer = 12  # value is set to reflect the MCH ch1 experiment. Changing this value will change the expected runtime
         kstart_moist = 0
         flat_level_index_plus1 = 6
-        dtime = 0.001
-        iau_wgt_dyn = 1.0
+        dtime = wpfloat(0.001)
+        iau_wgt_dyn = wpfloat(1.0)
 
         cell_domain = h_grid.domain(dims.CellDim)
         start_cell_nudging = grid.start_index(cell_domain(h_grid.Zone.NUDGING))

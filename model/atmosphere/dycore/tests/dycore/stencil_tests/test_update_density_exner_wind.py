@@ -48,16 +48,16 @@ class TestUpdateDensityExnerWind(stencil_tests.StencilTest):
     def input_data(
         data_alloc: stencil_tests.DataAllocationWrapper, grid: base.Grid
     ) -> dict[str, gtx.Field | state_utils.ScalarType]:
-        rho_now = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=ta.wpfloat)
-        grf_tend_rho = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=ta.wpfloat)
-        theta_v_now = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=ta.wpfloat)
-        grf_tend_thv = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=ta.wpfloat)
-        w_now = data_alloc.random_field(dims.CellDim, dims.KHalfDim, dtype=ta.wpfloat)
-        grf_tend_w = data_alloc.random_field(dims.CellDim, dims.KHalfDim, dtype=ta.wpfloat)
-        dtime = ta.wpfloat("5.0")
-        rho_new = data_alloc.zero_field(dims.CellDim, dims.KDim, dtype=ta.wpfloat)
-        exner_new = data_alloc.zero_field(dims.CellDim, dims.KDim, dtype=ta.wpfloat)
-        w_new = data_alloc.zero_field(dims.CellDim, dims.KHalfDim, dtype=ta.wpfloat)
+        rho_now = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=ta.wp_icon)
+        grf_tend_rho = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=ta.wp_icon)
+        theta_v_now = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=ta.wp_icon)
+        grf_tend_thv = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=ta.wp_icon)
+        w_now = data_alloc.random_field(dims.CellDim, dims.KHalfDim, dtype=ta.wp_icon)
+        grf_tend_w = data_alloc.random_field(dims.CellDim, dims.KHalfDim, dtype=ta.wp_icon)
+        dtime = ta.wp_icon("5.0")
+        rho_new = data_alloc.zero_field(dims.CellDim, dims.KDim, dtype=ta.wp_icon)
+        exner_new = data_alloc.zero_field(dims.CellDim, dims.KDim, dtype=ta.wp_icon)
+        w_new = data_alloc.zero_field(dims.CellDim, dims.KHalfDim, dtype=ta.wp_icon)
 
         return dict(
             rho_now=rho_now,

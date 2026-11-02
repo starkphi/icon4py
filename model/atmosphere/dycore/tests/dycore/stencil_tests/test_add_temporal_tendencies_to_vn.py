@@ -17,7 +17,7 @@ from icon4py.model.atmosphere.dycore.stencils.add_temporal_tendencies_to_vn impo
 from icon4py.model.common import constants, dimension as dims
 from icon4py.model.common.grid import base
 from icon4py.model.common.states import utils as state_utils
-from icon4py.model.common.type_alias import vpfloat, wpfloat
+from icon4py.model.common.type_alias import vpfloat, wp_icon, wpfloat
 from icon4py.model.testing import stencil_tests
 
 
@@ -67,12 +67,12 @@ class TestAddTemporalTendenciesToVn(stencil_tests.StencilTest):
         data_alloc: stencil_tests.DataAllocationWrapper, grid: base.Grid
     ) -> dict[str, gtx.Field | state_utils.ScalarType]:
         dtime = wpfloat("10.0")
-        vn_nnow = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=wpfloat)
+        vn_nnow = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=wp_icon)
         ddt_vn_apc_ntl1 = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=vpfloat)
         ddt_vn_phy = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=vpfloat)
         z_theta_v_e = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=wpfloat)
         z_gradh_exner = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=vpfloat)
-        vn_nnew = data_alloc.zero_field(dims.EdgeDim, dims.KDim, dtype=wpfloat)
+        vn_nnew = data_alloc.zero_field(dims.EdgeDim, dims.KDim, dtype=wp_icon)
 
         return dict(
             vn_nnow=vn_nnow,

@@ -17,7 +17,7 @@ from icon4py.model.atmosphere.dycore.stencils.update_mass_flux_weighted import (
 from icon4py.model.common import dimension as dims
 from icon4py.model.common.grid import base
 from icon4py.model.common.states import utils as state_utils
-from icon4py.model.common.type_alias import vpfloat, wpfloat
+from icon4py.model.common.type_alias import vpfloat, wp_icon, wpfloat
 from icon4py.model.testing import stencil_tests
 
 
@@ -65,13 +65,13 @@ class TestUpdateMassFluxWeighted(stencil_tests.StencilTest):
         data_alloc: stencil_tests.DataAllocationWrapper, grid: base.Grid
     ) -> dict[str, gtx.Field | state_utils.ScalarType]:
         r_nsubsteps = wpfloat("10.0")
-        rho_ic = data_alloc.random_field(dims.CellDim, dims.KHalfDim, dtype=wpfloat)
+        rho_ic = data_alloc.random_field(dims.CellDim, dims.KHalfDim, dtype=wp_icon)
         vwind_expl_wgt = data_alloc.random_field(dims.CellDim, dtype=wpfloat)
         vwind_impl_wgt = data_alloc.random_field(dims.CellDim, dtype=wpfloat)
-        w_now = data_alloc.random_field(dims.CellDim, dims.KHalfDim, dtype=wpfloat)
-        w_new = data_alloc.random_field(dims.CellDim, dims.KHalfDim, dtype=wpfloat)
+        w_now = data_alloc.random_field(dims.CellDim, dims.KHalfDim, dtype=wp_icon)
+        w_new = data_alloc.random_field(dims.CellDim, dims.KHalfDim, dtype=wp_icon)
         w_concorr_c = data_alloc.random_field(dims.CellDim, dims.KHalfDim, dtype=vpfloat)
-        mass_flx_ic = data_alloc.random_field(dims.CellDim, dims.KHalfDim, dtype=wpfloat)
+        mass_flx_ic = data_alloc.random_field(dims.CellDim, dims.KHalfDim, dtype=wp_icon)
 
         return dict(
             rho_ic=rho_ic,

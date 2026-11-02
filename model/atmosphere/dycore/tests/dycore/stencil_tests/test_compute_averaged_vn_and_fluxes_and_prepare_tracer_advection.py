@@ -17,6 +17,7 @@ from icon4py.model.atmosphere.dycore.stencils.compute_horizontal_velocity_quanti
 from icon4py.model.common import dimension as dims, type_alias as ta
 from icon4py.model.common.grid import base, horizontal as h_grid
 from icon4py.model.common.states import utils as state_utils
+from icon4py.model.common.type_alias import vpfloat, wp_icon, wpfloat
 from icon4py.model.testing import stencil_tests
 
 from .test_accumulate_prep_adv_fields import accumulate_prep_adv_fields_numpy
@@ -173,19 +174,19 @@ class TestComputeAveragedVnAndFluxesAndPrepareTracerAdvection(stencil_tests.Sten
         request: pytest.FixtureRequest,
     ) -> dict[str, gtx.Field | state_utils.ScalarType]:
         spatially_averaged_vn = data_alloc.zero_field(dims.EdgeDim, dims.KDim)
-        mass_fl_e = data_alloc.zero_field(dims.EdgeDim, dims.KDim)
+        mass_fl_e = data_alloc.zero_field(dims.EdgeDim, dims.KDim, dtype=wp_icon)
         z_theta_v_fl_e = data_alloc.zero_field(dims.EdgeDim, dims.KDim)
 
         substep_and_spatially_averaged_vn = data_alloc.random_field(dims.EdgeDim, dims.KDim)
         substep_averaged_mass_flux = data_alloc.random_field(dims.EdgeDim, dims.KDim)
-        e_flx_avg = data_alloc.random_field(dims.EdgeDim, dims.E2C2EODim)
+        e_flx_avg = data_alloc.random_field(dims.EdgeDim, dims.E2C2EODim, dtype=wpfloat)
         vn = data_alloc.random_field(dims.EdgeDim, dims.KDim)
-        z_rho_e = data_alloc.random_field(dims.EdgeDim, dims.KDim)
-        ddqz_z_full_e = data_alloc.random_field(dims.EdgeDim, dims.KDim)
-        z_theta_v_e = data_alloc.random_field(dims.EdgeDim, dims.KDim)
+        z_rho_e = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=wpfloat)
+        ddqz_z_full_e = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=vpfloat)
+        z_theta_v_e = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=wpfloat)
         prepare_fluxes_for_advection = request.param["prepare_fluxes_for_advection"]
         at_first_substep = request.param["at_first_substep"]
-        r_nsubsteps = 0.5
+        r_nsubsteps = wpfloat(0.5)
 
         edge_domain = h_grid.domain(dims.EdgeDim)
         horizontal_start = grid.start_index(edge_domain(h_grid.Zone.LATERAL_BOUNDARY_LEVEL_5))

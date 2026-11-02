@@ -17,7 +17,7 @@ from icon4py.model.atmosphere.dycore.stencils.apply_4th_order_divergence_damping
 from icon4py.model.common import constants, dimension as dims
 from icon4py.model.common.grid import base
 from icon4py.model.common.states import utils as state_utils
-from icon4py.model.common.type_alias import vpfloat, wpfloat
+from icon4py.model.common.type_alias import vpfloat, wp_icon, wpfloat
 from icon4py.model.testing import stencil_tests
 
 from . import test_dycore_utils
@@ -62,13 +62,13 @@ class TestApply4thOrderDivergenceDamping(stencil_tests.StencilTest):
     def input_data(
         data_alloc: stencil_tests.DataAllocationWrapper, grid: base.Grid
     ) -> dict[str, gtx.Field | state_utils.ScalarType]:
-        interpolated_fourth_order_divdamp_factor = data_alloc.random_field(dims.KDim)
+        interpolated_fourth_order_divdamp_factor = data_alloc.random_field(dims.KDim, dtype=wpfloat)
         z_graddiv2_vn = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=vpfloat)
-        vn = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=wpfloat)
+        vn = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=wp_icon)
 
         divdamp_order = 24
-        mean_cell_area = 1000.0
-        second_order_divdamp_factor = 3.0
+        mean_cell_area = wpfloat(1000.0)
+        second_order_divdamp_factor = wpfloat(3.0)
 
         return dict(
             interpolated_fourth_order_divdamp_factor=interpolated_fourth_order_divdamp_factor,

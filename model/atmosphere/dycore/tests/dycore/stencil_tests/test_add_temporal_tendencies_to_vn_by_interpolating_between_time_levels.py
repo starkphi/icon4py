@@ -81,13 +81,13 @@ class TestAddTemporalTendenciesToVnByInterpolatingBetweenTimeLevels(stencil_test
     def input_data(
         data_alloc: stencil_tests.DataAllocationWrapper, grid: base.Grid
     ) -> dict[str, gtx.Field | state_utils.ScalarType]:
-        vn_nnow = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=ta.wpfloat)
+        vn_nnow = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=ta.wp_icon)
         ddt_vn_apc_ntl1 = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=ta.vpfloat)
         ddt_vn_apc_ntl2 = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=ta.vpfloat)
         ddt_vn_phy = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=ta.vpfloat)
         z_theta_v_e = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=ta.wpfloat)
         z_gradh_exner = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=ta.vpfloat)
-        vn_nnew = data_alloc.zero_field(dims.EdgeDim, dims.KDim, dtype=ta.wpfloat)
+        vn_nnew = data_alloc.zero_field(dims.EdgeDim, dims.KDim, dtype=ta.wp_icon)
         dtime = ta.wpfloat("5.0")
         wgt_nnow_vel = ta.wpfloat("8.0")
         wgt_nnew_vel = ta.wpfloat("7.0")

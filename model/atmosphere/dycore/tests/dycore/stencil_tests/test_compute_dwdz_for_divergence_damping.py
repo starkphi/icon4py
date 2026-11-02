@@ -17,7 +17,7 @@ from icon4py.model.atmosphere.dycore.stencils.compute_dwdz_for_divergence_dampin
 )
 from icon4py.model.common import dimension as dims
 from icon4py.model.common.grid import base
-from icon4py.model.common.type_alias import vpfloat, wpfloat
+from icon4py.model.common.type_alias import vpfloat, wp_icon, wpfloat
 from icon4py.model.testing import stencil_tests
 
 
@@ -57,7 +57,7 @@ class TestComputeDwdzForDivergenceDamping(stencil_tests.StencilTest):
         data_alloc: stencil_tests.DataAllocationWrapper, grid: base.Grid
     ) -> dict[str, Any]:
         inv_ddqz_z_full = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=vpfloat)
-        w = data_alloc.random_field(dims.CellDim, dims.KHalfDim, dtype=wpfloat)
+        w = data_alloc.random_field(dims.CellDim, dims.KHalfDim, dtype=wp_icon)
         w_concorr_c = data_alloc.random_field(dims.CellDim, dims.KHalfDim, dtype=vpfloat)
         z_dwdz_dd = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=vpfloat)
 

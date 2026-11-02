@@ -16,6 +16,7 @@ from icon4py.model.atmosphere.dycore.stencils.update_mass_volume_flux import upd
 from icon4py.model.common import dimension as dims, type_alias as ta
 from icon4py.model.common.grid import base
 from icon4py.model.common.states import utils as state_utils
+from icon4py.model.common.type_alias import wpfloat
 from icon4py.model.testing import stencil_tests
 
 
@@ -77,10 +78,10 @@ class TestUpdateMassVolumeFlux(stencil_tests.StencilTest):
         z_contr_w_fl_l = data_alloc.random_field(dims.CellDim, dims.KHalfDim, dtype=ta.wpfloat)
         rho_ic = data_alloc.random_field(dims.CellDim, dims.KHalfDim, dtype=ta.wpfloat)
         vwind_impl_wgt = data_alloc.random_field(dims.CellDim, dtype=ta.wpfloat)
-        w = data_alloc.random_field(dims.CellDim, dims.KHalfDim, dtype=ta.wpfloat)
-        mass_flx_ic = data_alloc.random_field(dims.CellDim, dims.KHalfDim, dtype=ta.wpfloat)
-        vol_flx_ic = data_alloc.random_field(dims.CellDim, dims.KHalfDim, dtype=ta.wpfloat)
-        r_nsubsteps = 7.0
+        w = data_alloc.random_field(dims.CellDim, dims.KHalfDim, dtype=ta.wp_icon)
+        mass_flx_ic = data_alloc.random_field(dims.CellDim, dims.KHalfDim, dtype=ta.wp_icon)
+        vol_flx_ic = data_alloc.random_field(dims.CellDim, dims.KHalfDim, dtype=ta.wp_icon)
+        r_nsubsteps = wpfloat(7.0)
 
         return dict(
             z_contr_w_fl_l=z_contr_w_fl_l,

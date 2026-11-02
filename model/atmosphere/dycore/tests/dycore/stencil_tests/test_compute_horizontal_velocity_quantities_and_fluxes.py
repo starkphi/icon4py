@@ -18,6 +18,7 @@ from icon4py.model.atmosphere.dycore.stencils.compute_horizontal_velocity_quanti
 from icon4py.model.common import dimension as dims
 from icon4py.model.common.grid import base, horizontal as h_grid
 from icon4py.model.common.states import utils as state_utils
+from icon4py.model.common.type_alias import vpfloat, wp_icon, wpfloat
 from icon4py.model.testing import stencil_tests
 
 from .test_compute_avg_vn_and_graddiv_vn_and_vt import compute_avg_vn_and_graddiv_vn_and_vt_numpy
@@ -257,7 +258,9 @@ class TestComputeHorizontalVelocityQuantitiesAndFluxes(stencil_tests.StencilTest
             dims.EdgeDim, dims.KDim
         )
         tangential_wind = data_alloc.zero_field(dims.EdgeDim, dims.KDim)
-        mass_flux_at_edges_on_model_levels = data_alloc.zero_field(dims.EdgeDim, dims.KDim)
+        mass_flux_at_edges_on_model_levels = data_alloc.zero_field(
+            dims.EdgeDim, dims.KDim, dtype=wp_icon
+        )
         theta_v_flux_at_edges_on_model_levels = data_alloc.zero_field(dims.EdgeDim, dims.KDim)
         tangential_wind_on_half_levels = data_alloc.zero_field(dims.EdgeDim, dims.KHalfDim)
         vn_on_half_levels = data_alloc.zero_field(dims.EdgeDim, dims.KHalfDim)
@@ -269,16 +272,20 @@ class TestComputeHorizontalVelocityQuantitiesAndFluxes(stencil_tests.StencilTest
         )
 
         vn = data_alloc.random_field(dims.EdgeDim, dims.KDim)
-        wgtfac_e = data_alloc.random_field(dims.EdgeDim, dims.KHalfDim)
-        wgtfacq_e = data_alloc.random_field(dims.EdgeDim, dims.KDim)
-        e_flx_avg = data_alloc.random_field(dims.EdgeDim, dims.E2C2EODim)
-        geofac_grdiv = data_alloc.random_field(dims.EdgeDim, dims.E2C2EODim)
-        rbf_vec_coeff_e = data_alloc.random_field(dims.EdgeDim, dims.E2C2EDim)
-        rho_at_edges_on_model_levels = data_alloc.random_field(dims.EdgeDim, dims.KDim)
-        theta_v_at_edges_on_model_levels = data_alloc.random_field(dims.EdgeDim, dims.KDim)
-        ddqz_z_full_e = data_alloc.random_field(dims.EdgeDim, dims.KDim)
-        ddxn_z_full = data_alloc.random_field(dims.EdgeDim, dims.KDim)
-        ddxt_z_full = data_alloc.random_field(dims.EdgeDim, dims.KDim)
+        wgtfac_e = data_alloc.random_field(dims.EdgeDim, dims.KHalfDim, dtype=vpfloat)
+        wgtfacq_e = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=vpfloat)
+        e_flx_avg = data_alloc.random_field(dims.EdgeDim, dims.E2C2EODim, dtype=wpfloat)
+        geofac_grdiv = data_alloc.random_field(dims.EdgeDim, dims.E2C2EODim, dtype=wpfloat)
+        rbf_vec_coeff_e = data_alloc.random_field(dims.EdgeDim, dims.E2C2EDim, dtype=wpfloat)
+        rho_at_edges_on_model_levels = data_alloc.random_field(
+            dims.EdgeDim, dims.KDim, dtype=wpfloat
+        )
+        theta_v_at_edges_on_model_levels = data_alloc.random_field(
+            dims.EdgeDim, dims.KDim, dtype=wpfloat
+        )
+        ddqz_z_full_e = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=vpfloat)
+        ddxn_z_full = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=vpfloat)
+        ddxt_z_full = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=vpfloat)
 
         nflatlev = 5  # value is set to reflect the MCH ch1 experiment. Changing this value will change the expected runtime
 

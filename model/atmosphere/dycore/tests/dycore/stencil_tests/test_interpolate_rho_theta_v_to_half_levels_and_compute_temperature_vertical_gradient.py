@@ -30,6 +30,7 @@ from icon4py.model.atmosphere.dycore.stencils.compute_cell_diagnostics_for_dycor
 from icon4py.model.common import dimension as dims, type_alias as ta
 from icon4py.model.common.grid import base, horizontal as h_grid
 from icon4py.model.common.states import utils as state_utils
+from icon4py.model.common.type_alias import vpfloat, wp_icon, wpfloat
 from icon4py.model.testing import stencil_tests
 
 
@@ -180,27 +181,39 @@ class TestInterpolateRhoThetaVToHalfLevelsAndComputePressureBuoyancyAcceleration
     ) -> dict[str, gtx.Field | state_utils.ScalarType]:
         w = data_alloc.random_field(dims.CellDim, dims.KHalfDim)
         contravariant_correction_at_cells_on_half_levels = data_alloc.random_field(
-            dims.CellDim, dims.KHalfDim
+            dims.CellDim,
+            dims.KHalfDim,
+            dtype=vpfloat,
         )
-        ddqz_z_half = data_alloc.random_field(dims.CellDim, dims.KHalfDim)
+        ddqz_z_half = data_alloc.random_field(dims.CellDim, dims.KHalfDim, dtype=vpfloat)
         current_rho = data_alloc.random_field(dims.CellDim, dims.KDim)
         next_rho = data_alloc.random_field(dims.CellDim, dims.KDim)
         current_theta_v = data_alloc.random_field(dims.CellDim, dims.KDim)
         next_theta_v = data_alloc.random_field(dims.CellDim, dims.KDim)
-        wgtfac_c = data_alloc.random_field(dims.CellDim, dims.KHalfDim)
-        reference_theta_at_cells_on_model_levels = data_alloc.random_field(dims.CellDim, dims.KDim)
-        exner_w_explicit_weight_parameter = data_alloc.random_field(dims.CellDim)
-        perturbed_exner_at_cells_on_model_levels = data_alloc.zero_field(dims.CellDim, dims.KDim)
-        ddz_of_reference_exner_at_cells_on_half_levels = data_alloc.random_field(
-            dims.CellDim, dims.KHalfDim
+        wgtfac_c = data_alloc.random_field(dims.CellDim, dims.KHalfDim, dtype=vpfloat)
+        reference_theta_at_cells_on_model_levels = data_alloc.random_field(
+            dims.CellDim, dims.KDim, dtype=vpfloat
         )
-        rho_at_cells_on_half_levels = data_alloc.zero_field(dims.CellDim, dims.KHalfDim)
-        theta_v_at_cells_on_half_levels = data_alloc.zero_field(dims.CellDim, dims.KHalfDim)
+        exner_w_explicit_weight_parameter = data_alloc.random_field(dims.CellDim, dtype=wpfloat)
+        perturbed_exner_at_cells_on_model_levels = data_alloc.zero_field(
+            dims.CellDim, dims.KDim, dtype=wp_icon
+        )
+        ddz_of_reference_exner_at_cells_on_half_levels = data_alloc.random_field(
+            dims.CellDim,
+            dims.KHalfDim,
+            dtype=vpfloat,
+        )
+        rho_at_cells_on_half_levels = data_alloc.zero_field(
+            dims.CellDim, dims.KHalfDim, dtype=wp_icon
+        )
+        theta_v_at_cells_on_half_levels = data_alloc.zero_field(
+            dims.CellDim, dims.KHalfDim, dtype=wp_icon
+        )
         nonhydro_buoy_at_cells_on_half_levels = data_alloc.zero_field(dims.CellDim, dims.KHalfDim)
 
-        dtime = 0.9
-        rhotheta_explicit_weight_parameter = 0.25
-        rhotheta_implicit_weight_parameter = 0.75
+        dtime = wpfloat(0.9)
+        rhotheta_explicit_weight_parameter = wpfloat(0.25)
+        rhotheta_implicit_weight_parameter = wpfloat(0.75)
 
         cell_domain = h_grid.domain(dims.CellDim)
         start_cell_lateral_boundary_level_3 = grid.start_index(

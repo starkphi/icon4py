@@ -17,6 +17,7 @@ from icon4py.model.atmosphere.dycore.stencils.vertically_implicit_dycore_solver 
 from icon4py.model.common import constants, dimension as dims
 from icon4py.model.common.grid import base, horizontal as h_grid
 from icon4py.model.common.states import utils as state_utils
+from icon4py.model.common.type_alias import vpfloat, wp_icon, wpfloat
 from icon4py.model.testing import stencil_tests
 
 from .test_add_analysis_increments_from_data_assimilation import (
@@ -424,68 +425,91 @@ class TestVerticallyImplicitSolverAtCorrectorStep(stencil_tests.StencilTest):
         grid: base.Grid,
         request: pytest.FixtureRequest,
     ) -> dict[str, gtx.Field | state_utils.ScalarType]:
-        geofac_div = data_alloc.random_field(dims.CellDim, dims.C2EDim)
+        geofac_div = data_alloc.random_field(dims.CellDim, dims.C2EDim, dtype=wpfloat)
         mass_flux_at_edges_on_model_levels = data_alloc.random_field(dims.EdgeDim, dims.KDim)
-        theta_v_flux_at_edges_on_model_levels = data_alloc.random_field(dims.EdgeDim, dims.KDim)
+        theta_v_flux_at_edges_on_model_levels = data_alloc.random_field(
+            dims.EdgeDim, dims.KDim, dtype=wpfloat
+        )
         current_w = data_alloc.random_field(dims.CellDim, dims.KHalfDim)
         predictor_vertical_wind_advective_tendency = data_alloc.random_field(
-            dims.CellDim, dims.KHalfDim
+            dims.CellDim,
+            dims.KHalfDim,
+            dtype=vpfloat,
         )
         corrector_vertical_wind_advective_tendency = data_alloc.random_field(
-            dims.CellDim, dims.KHalfDim
+            dims.CellDim,
+            dims.KHalfDim,
+            dtype=vpfloat,
         )
-        nonhydro_buoy_at_cells_on_half_levels = data_alloc.random_field(dims.CellDim, dims.KHalfDim)
+        nonhydro_buoy_at_cells_on_half_levels = data_alloc.random_field(
+            dims.CellDim, dims.KHalfDim, dtype=vpfloat
+        )
         rho_at_cells_on_half_levels = data_alloc.random_field(
             dims.CellDim, dims.KHalfDim, low=1.0e-5
         )
         contravariant_correction_at_cells_on_half_levels = data_alloc.random_field(
-            dims.CellDim, dims.KHalfDim
+            dims.CellDim,
+            dims.KHalfDim,
+            dtype=vpfloat,
         )
-        exner_w_explicit_weight_parameter = data_alloc.random_field(dims.CellDim)
+        exner_w_explicit_weight_parameter = data_alloc.random_field(dims.CellDim, dtype=wpfloat)
         current_exner = data_alloc.random_field(dims.CellDim, dims.KDim, low=1.0e-5)
         current_rho = data_alloc.random_field(dims.CellDim, dims.KDim, low=1.0e-5)
         current_theta_v = data_alloc.random_field(dims.CellDim, dims.KDim, low=1.0e-5)
-        inv_ddqz_z_full = data_alloc.random_field(dims.CellDim, dims.KDim, low=1.0e-5)
-        exner_w_implicit_weight_parameter = data_alloc.random_field(dims.CellDim)
+        inv_ddqz_z_full = data_alloc.random_field(
+            dims.CellDim, dims.KDim, low=1.0e-5, dtype=vpfloat
+        )
+        exner_w_implicit_weight_parameter = data_alloc.random_field(dims.CellDim, dtype=wpfloat)
         theta_v_at_cells_on_half_levels = data_alloc.random_field(
             dims.CellDim, dims.KHalfDim, low=1.0e-5
         )
         perturbed_exner_at_cells_on_model_levels = data_alloc.random_field(dims.CellDim, dims.KDim)
-        exner_tendency_due_to_slow_physics = data_alloc.random_field(dims.CellDim, dims.KDim)
-        rho_iau_increment = data_alloc.random_field(dims.CellDim, dims.KDim)
-        exner_iau_increment = data_alloc.random_field(dims.CellDim, dims.KDim)
-        ddqz_z_half = data_alloc.random_field(dims.CellDim, dims.KHalfDim, low=1.0e-5)
+        exner_tendency_due_to_slow_physics = data_alloc.random_field(
+            dims.CellDim, dims.KDim, dtype=vpfloat
+        )
+        rho_iau_increment = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=vpfloat)
+        exner_iau_increment = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=vpfloat)
+        ddqz_z_half = data_alloc.random_field(
+            dims.CellDim, dims.KHalfDim, low=1.0e-5, dtype=vpfloat
+        )
         rayleigh_damping_factor = data_alloc.random_field(dims.KHalfDim)
         reference_exner_at_cells_on_model_levels = data_alloc.random_field(
-            dims.CellDim, dims.KDim, low=1.0e-5
+            dims.CellDim,
+            dims.KDim,
+            low=1.0e-5,
+            dtype=vpfloat,
         )
 
-        next_w = data_alloc.zero_field(dims.CellDim, dims.KHalfDim)
-        next_rho = data_alloc.constant_field(1.0e-5, dims.CellDim, dims.KDim)
-        next_exner = data_alloc.constant_field(1.0e-5, dims.CellDim, dims.KDim)
-        next_theta_v = data_alloc.constant_field(1.0e-5, dims.CellDim, dims.KDim)
-        exner_dynamical_increment = data_alloc.random_field(dims.CellDim, dims.KDim)
+        next_w = data_alloc.zero_field(dims.CellDim, dims.KHalfDim, dtype=wp_icon)
+        next_rho = data_alloc.constant_field(1.0e-5, dims.CellDim, dims.KDim, dtype=wp_icon)
+        next_exner = data_alloc.constant_field(1.0e-5, dims.CellDim, dims.KDim, dtype=wp_icon)
+        next_theta_v = data_alloc.constant_field(1.0e-5, dims.CellDim, dims.KDim, dtype=wp_icon)
+        exner_dynamical_increment = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=vpfloat)
         dynamical_vertical_mass_flux_at_cells_on_half_levels = data_alloc.zero_field(
-            dims.CellDim, dims.KHalfDim
+            dims.CellDim,
+            dims.KHalfDim,
+            dtype=wp_icon,
         )
         dynamical_vertical_volumetric_flux_at_cells_on_half_levels = data_alloc.zero_field(
-            dims.CellDim, dims.KHalfDim
+            dims.CellDim,
+            dims.KHalfDim,
+            dtype=wp_icon,
         )
 
         prepare_fluxes_for_advection = request.param["prepare_fluxes_for_advection"]
-        r_nsubsteps = 0.5
+        r_nsubsteps = wpfloat(0.5)
         is_iau_active = request.param["is_iau_active"]
         at_first_substep = request.param["at_first_substep"]
         rayleigh_type = 2
         end_index_of_damping_layer = 12  # value is set to reflect the MCH ch1 experiment. Changing this value will change the expected runtime
         at_last_substep = request.param["at_last_substep"]
         kstart_moist = 0  # value is set to reflect the MCH ch1 experiment. Changing this value will change the expected runtime
-        dtime = 0.001
+        dtime = wpfloat(0.001)
         veladv_offctr = 0.25
-        advection_explicit_weight_parameter = 0.5 - veladv_offctr
-        advection_implicit_weight_parameter = 0.5 + veladv_offctr
-        iau_wgt_dyn = 1.0
-        ndyn_substeps_var = 0.5
+        advection_explicit_weight_parameter = wpfloat(0.5 - veladv_offctr)
+        advection_implicit_weight_parameter = wpfloat(0.5 + veladv_offctr)
+        iau_wgt_dyn = wpfloat(1.0)
+        ndyn_substeps_var = wpfloat(0.5)
 
         cell_domain = h_grid.domain(dims.CellDim)
         start_cell_nudging = grid.start_index(cell_domain(h_grid.Zone.NUDGING))

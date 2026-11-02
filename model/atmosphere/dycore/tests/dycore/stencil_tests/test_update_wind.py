@@ -15,7 +15,7 @@ from icon4py.model.atmosphere.dycore.stencils.update_wind import update_wind
 from icon4py.model.common import dimension as dims
 from icon4py.model.common.grid import base
 from icon4py.model.common.states import utils as state_utils
-from icon4py.model.common.type_alias import wpfloat
+from icon4py.model.common.type_alias import wp_icon, wpfloat
 from icon4py.model.testing import stencil_tests
 
 
@@ -39,10 +39,10 @@ class TestUpdateWind(stencil_tests.StencilTest):
     def input_data(
         data_alloc: stencil_tests.DataAllocationWrapper, grid: base.Grid
     ) -> dict[str, gtx.Field | state_utils.ScalarType]:
-        dtime = wpfloat("10.0")
-        w_now = data_alloc.random_field(dims.CellDim, dims.KHalfDim, dtype=wpfloat)
-        grf_tend_w = data_alloc.random_field(dims.CellDim, dims.KHalfDim, dtype=wpfloat)
-        w_new = data_alloc.zero_field(dims.CellDim, dims.KHalfDim, dtype=wpfloat)
+        dtime = wp_icon("10.0")
+        w_now = data_alloc.random_field(dims.CellDim, dims.KHalfDim, dtype=wp_icon)
+        grf_tend_w = data_alloc.random_field(dims.CellDim, dims.KHalfDim, dtype=wp_icon)
+        w_new = data_alloc.zero_field(dims.CellDim, dims.KHalfDim, dtype=wp_icon)
 
         return dict(
             w_now=w_now,

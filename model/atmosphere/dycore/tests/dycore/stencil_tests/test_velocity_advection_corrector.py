@@ -17,6 +17,7 @@ from icon4py.model.atmosphere.dycore.stencils.velocity_advection_corrector impor
 from icon4py.model.common import dimension as dims, type_alias as ta
 from icon4py.model.common.grid import base, horizontal as h_grid
 from icon4py.model.common.states import utils as state_utils
+from icon4py.model.common.type_alias import vpfloat, wpfloat
 from icon4py.model.testing import stencil_tests
 
 from .test_velocity_advection_terms import (
@@ -215,38 +216,44 @@ class TestComputeVelocityAdvectionInCorrectorStep(stencil_tests.StencilTest):
 
         vn = data_alloc.random_field(dims.EdgeDim, dims.KDim)
         w = data_alloc.random_field(dims.CellDim, dims.KHalfDim)
-        tangential_wind = data_alloc.random_field(dims.EdgeDim, dims.KDim)
-        tangential_wind_on_half_levels = data_alloc.random_field(dims.EdgeDim, dims.KHalfDim)
-        vn_on_half_levels = data_alloc.random_field(dims.EdgeDim, dims.KHalfDim)
+        tangential_wind = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=vpfloat)
+        tangential_wind_on_half_levels = data_alloc.random_field(
+            dims.EdgeDim, dims.KHalfDim, dtype=wpfloat
+        )
+        vn_on_half_levels = data_alloc.random_field(dims.EdgeDim, dims.KHalfDim, dtype=vpfloat)
         horizontal_kinetic_energy_at_edges_on_model_levels = data_alloc.random_field(
-            dims.EdgeDim, dims.KDim
+            dims.EdgeDim,
+            dims.KDim,
+            dtype=vpfloat,
         )
         contravariant_correction_at_cells_on_half_levels = data_alloc.random_field(
-            dims.CellDim, dims.KHalfDim
+            dims.CellDim,
+            dims.KHalfDim,
+            dtype=vpfloat,
         )
 
-        coeff1_dwdz = data_alloc.random_field(dims.CellDim, dims.KDim)
-        coeff2_dwdz = data_alloc.random_field(dims.CellDim, dims.KDim)
-        c_intp = data_alloc.random_field(dims.VertexDim, dims.V2CDim)
-        inv_dual_edge_length = data_alloc.random_field(dims.EdgeDim, low=1.0e-5)
-        inv_primal_edge_length = data_alloc.random_field(dims.EdgeDim, low=1.0e-5)
-        tangent_orientation = data_alloc.random_field(dims.EdgeDim, low=1.0e-5)
-        e_bln_c_s = data_alloc.random_field(dims.CellDim, dims.C2EDim)
+        coeff1_dwdz = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=vpfloat)
+        coeff2_dwdz = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=vpfloat)
+        c_intp = data_alloc.random_field(dims.VertexDim, dims.V2CDim, dtype=wpfloat)
+        inv_dual_edge_length = data_alloc.random_field(dims.EdgeDim, low=1.0e-5, dtype=wpfloat)
+        inv_primal_edge_length = data_alloc.random_field(dims.EdgeDim, low=1.0e-5, dtype=wpfloat)
+        tangent_orientation = data_alloc.random_field(dims.EdgeDim, low=1.0e-5, dtype=wpfloat)
+        e_bln_c_s = data_alloc.random_field(dims.CellDim, dims.C2EDim, dtype=wpfloat)
         # positive thicknesses: the CFL clipping compares |w| * dtime / ddqz_z_half with the limit
-        ddqz_z_half = data_alloc.random_field(dims.CellDim, dims.KHalfDim, low=0.0)
-        area = data_alloc.random_field(dims.CellDim)
-        geofac_n2s = data_alloc.random_field(dims.CellDim, dims.C2E2CODim)
+        ddqz_z_half = data_alloc.random_field(dims.CellDim, dims.KHalfDim, low=0.0, dtype=vpfloat)
+        area = data_alloc.random_field(dims.CellDim, dtype=wpfloat)
+        geofac_n2s = data_alloc.random_field(dims.CellDim, dims.C2E2CODim, dtype=wpfloat)
         owner_mask = data_alloc.random_mask(dims.CellDim)
-        coriolis_frequency = data_alloc.random_field(dims.EdgeDim)
-        geofac_rot = data_alloc.random_field(dims.VertexDim, dims.V2EDim)
-        coeff_gradekin = data_alloc.random_field(dims.EdgeDim, dims.E2CDim)
-        c_lin_e = data_alloc.random_field(dims.EdgeDim, dims.E2CDim)
+        coriolis_frequency = data_alloc.random_field(dims.EdgeDim, dtype=wpfloat)
+        geofac_rot = data_alloc.random_field(dims.VertexDim, dims.V2EDim, dtype=wpfloat)
+        coeff_gradekin = data_alloc.random_field(dims.EdgeDim, dims.E2CDim, dtype=vpfloat)
+        c_lin_e = data_alloc.random_field(dims.EdgeDim, dims.E2CDim, dtype=wpfloat)
         # low=0.0 makes sure the simplified stencil produces the same result as the numpy version
-        ddqz_z_full_e = data_alloc.random_field(dims.EdgeDim, dims.KDim, low=0.0)
-        area_edge = data_alloc.random_field(dims.EdgeDim)
-        geofac_grdiv = data_alloc.random_field(dims.EdgeDim, dims.E2C2EODim)
+        ddqz_z_full_e = data_alloc.random_field(dims.EdgeDim, dims.KDim, low=0.0, dtype=vpfloat)
+        area_edge = data_alloc.random_field(dims.EdgeDim, dtype=wpfloat)
+        geofac_grdiv = data_alloc.random_field(dims.EdgeDim, dims.E2C2EODim, dtype=wpfloat)
 
-        dtime = 2.0
+        dtime = wpfloat(2.0)
 
         # value is set to reflect the MCH ch1 experiment. Changing it changes the runtime
         end_index_of_damping_layer = 12

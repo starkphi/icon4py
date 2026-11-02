@@ -19,6 +19,7 @@ from icon4py.model.atmosphere.dycore.stencils.compute_edge_diagnostics_for_dycor
 )
 from icon4py.model.common import constants, dimension as dims
 from icon4py.model.common.grid import base, horizontal as h_grid
+from icon4py.model.common.type_alias import vpfloat, wpfloat
 from icon4py.model.testing import stencil_tests
 
 
@@ -448,47 +449,71 @@ class TestComputeThetaRhoPressureGradientAndUpdateVn(stencil_tests.StencilTest):
         grid: base.Grid,
         request: pytest.FixtureRequest,
     ) -> dict:
-        geofac_grg_x = data_alloc.random_field(dims.CellDim, dims.C2E2CODim)
-        geofac_grg_y = data_alloc.random_field(dims.CellDim, dims.C2E2CODim)
+        geofac_grg_x = data_alloc.random_field(dims.CellDim, dims.C2E2CODim, dtype=wpfloat)
+        geofac_grg_y = data_alloc.random_field(dims.CellDim, dims.C2E2CODim, dtype=wpfloat)
         current_vn = data_alloc.random_field(dims.EdgeDim, dims.KDim)
-        tangential_wind = data_alloc.random_field(dims.EdgeDim, dims.KDim)
-        pos_on_tplane_e_x = data_alloc.random_field(dims.EdgeDim, dims.E2CDim)
-        pos_on_tplane_e_y = data_alloc.random_field(dims.EdgeDim, dims.E2CDim)
-        primal_normal_cell_x = data_alloc.random_field(dims.EdgeDim, dims.E2CDim)
-        dual_normal_cell_x = data_alloc.random_field(dims.EdgeDim, dims.E2CDim)
-        primal_normal_cell_y = data_alloc.random_field(dims.EdgeDim, dims.E2CDim)
-        dual_normal_cell_y = data_alloc.random_field(dims.EdgeDim, dims.E2CDim)
-        reference_rho_at_edges_on_model_levels = data_alloc.random_field(dims.EdgeDim, dims.KDim)
-        reference_theta_at_edges_on_model_levels = data_alloc.random_field(dims.EdgeDim, dims.KDim)
-        perturbed_rho_at_cells_on_model_levels = data_alloc.random_field(dims.CellDim, dims.KDim)
-        perturbed_theta_v_at_cells_on_model_levels = data_alloc.random_field(
-            dims.CellDim, dims.KDim
+        tangential_wind = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=vpfloat)
+        pos_on_tplane_e_x = data_alloc.random_field(dims.EdgeDim, dims.E2CDim, dtype=wpfloat)
+        pos_on_tplane_e_y = data_alloc.random_field(dims.EdgeDim, dims.E2CDim, dtype=wpfloat)
+        primal_normal_cell_x = data_alloc.random_field(dims.EdgeDim, dims.E2CDim, dtype=wpfloat)
+        dual_normal_cell_x = data_alloc.random_field(dims.EdgeDim, dims.E2CDim, dtype=wpfloat)
+        primal_normal_cell_y = data_alloc.random_field(dims.EdgeDim, dims.E2CDim, dtype=wpfloat)
+        dual_normal_cell_y = data_alloc.random_field(dims.EdgeDim, dims.E2CDim, dtype=wpfloat)
+        reference_rho_at_edges_on_model_levels = data_alloc.random_field(
+            dims.EdgeDim, dims.KDim, dtype=vpfloat
         )
-        ddxn_z_full = data_alloc.random_field(dims.EdgeDim, dims.KDim)
-        c_lin_e = data_alloc.random_field(dims.EdgeDim, dims.E2CDim)
-        temporal_extrapolation_of_perturbed_exner = data_alloc.random_field(dims.CellDim, dims.KDim)
+        reference_theta_at_edges_on_model_levels = data_alloc.random_field(
+            dims.EdgeDim, dims.KDim, dtype=vpfloat
+        )
+        perturbed_rho_at_cells_on_model_levels = data_alloc.random_field(
+            dims.CellDim, dims.KDim, dtype=vpfloat
+        )
+        perturbed_theta_v_at_cells_on_model_levels = data_alloc.random_field(
+            dims.CellDim,
+            dims.KDim,
+            dtype=vpfloat,
+        )
+        ddxn_z_full = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=vpfloat)
+        c_lin_e = data_alloc.random_field(dims.EdgeDim, dims.E2CDim, dtype=wpfloat)
+        temporal_extrapolation_of_perturbed_exner = data_alloc.random_field(
+            dims.CellDim, dims.KDim, dtype=vpfloat
+        )
         ddz_of_temporal_extrapolation_of_perturbed_exner_on_model_levels = data_alloc.random_field(
-            dims.CellDim, dims.KDim
+            dims.CellDim,
+            dims.KDim,
+            dtype=vpfloat,
         )
         d2dz2_of_temporal_extrapolation_of_perturbed_exner_on_model_levels = (
-            data_alloc.random_field(dims.CellDim, dims.KDim)
+            data_alloc.random_field(dims.CellDim, dims.KDim, dtype=vpfloat)
         )
-        hydrostatic_correction_on_lowest_level = data_alloc.random_field(dims.EdgeDim)
-        zdiff_gradp = data_alloc.random_field(dims.EdgeDim, dims.E2CDim, dims.KDim)
+        hydrostatic_correction_on_lowest_level = data_alloc.random_field(
+            dims.EdgeDim, dtype=wpfloat
+        )
+        zdiff_gradp = data_alloc.random_field(dims.EdgeDim, dims.E2CDim, dims.KDim, dtype=vpfloat)
         pg_exdist = data_alloc.random_field(
-            dims.EdgeDim, dims.KDim
+            dims.EdgeDim, dims.KDim, dtype=vpfloat
         )  # TODO(havogt): should be allocated with a sparse pattern
-        inv_dual_edge_length = data_alloc.random_field(dims.EdgeDim)
-        predictor_normal_wind_advective_tendency = data_alloc.random_field(dims.EdgeDim, dims.KDim)
-        normal_wind_tendency_due_to_slow_physics_process = data_alloc.random_field(
-            dims.EdgeDim, dims.KDim
+        inv_dual_edge_length = data_alloc.random_field(dims.EdgeDim, dtype=wpfloat)
+        predictor_normal_wind_advective_tendency = data_alloc.random_field(
+            dims.EdgeDim, dims.KDim, dtype=vpfloat
         )
-        normal_wind_iau_increment = data_alloc.random_field(dims.EdgeDim, dims.KDim)
+        normal_wind_tendency_due_to_slow_physics_process = data_alloc.random_field(
+            dims.EdgeDim,
+            dims.KDim,
+            dtype=vpfloat,
+        )
+        normal_wind_iau_increment = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=vpfloat)
         grf_tend_vn = data_alloc.random_field(dims.EdgeDim, dims.KDim)
         next_vn = data_alloc.random_field(dims.EdgeDim, dims.KDim)
-        theta_v_at_edges_on_model_levels = data_alloc.random_field(dims.EdgeDim, dims.KDim)
-        horizontal_pressure_gradient = data_alloc.random_field(dims.EdgeDim, dims.KDim)
-        rho_at_edges_on_model_levels = data_alloc.random_field(dims.EdgeDim, dims.KDim)
+        theta_v_at_edges_on_model_levels = data_alloc.random_field(
+            dims.EdgeDim, dims.KDim, dtype=wpfloat
+        )
+        horizontal_pressure_gradient = data_alloc.random_field(
+            dims.EdgeDim, dims.KDim, dtype=vpfloat
+        )
+        rho_at_edges_on_model_levels = data_alloc.random_field(
+            dims.EdgeDim, dims.KDim, dtype=wpfloat
+        )
 
         ikoffset_buffer = np.zeros(
             (grid.size[dims.EdgeDim], grid.size[dims.E2CDim], grid.size[dims.KDim]),
@@ -506,8 +531,8 @@ class TestComputeThetaRhoPressureGradientAndUpdateVn(stencil_tests.StencilTest):
             )
         ikoffset = data_alloc.as_field(ikoffset_buffer, dims.EdgeDim, dims.E2CDim, dims.KDim)
 
-        dtime = 0.9
-        iau_wgt_dyn = 1.0
+        dtime = wpfloat(0.9)
+        iau_wgt_dyn = wpfloat(1.0)
         is_iau_active = request.param["is_iau_active"]
         limited_area = grid.limited_area if hasattr(grid, "limited_area") else True
         edge_domain = h_grid.domain(dims.EdgeDim)

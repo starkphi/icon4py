@@ -18,7 +18,7 @@ from icon4py.model.atmosphere.dycore.stencils.solve_tridiagonal_matrix_for_w_bac
 from icon4py.model.common import dimension as dims
 from icon4py.model.common.grid import base
 from icon4py.model.common.states import utils as state_utils
-from icon4py.model.common.type_alias import vpfloat, wpfloat
+from icon4py.model.common.type_alias import vpfloat, wp_icon, wpfloat
 from icon4py.model.testing import stencil_tests
 
 
@@ -59,7 +59,7 @@ class TestSolveTridiagonalMatrixForWBackSubstitution(stencil_tests.StencilTest):
         data_alloc: stencil_tests.DataAllocationWrapper, grid: base.Grid
     ) -> dict[str, gtx.Field | state_utils.ScalarType]:
         z_q = data_alloc.random_field(dims.CellDim, dims.KHalfDim, dtype=vpfloat)
-        w = data_alloc.random_field(dims.CellDim, dims.KHalfDim, dtype=wpfloat)
+        w = data_alloc.random_field(dims.CellDim, dims.KHalfDim, dtype=wp_icon)
         h_start = 0
         h_end = gtx.int32(grid.num_cells)
         v_start = 1

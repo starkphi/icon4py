@@ -65,9 +65,9 @@ class TestAddAnalysisIncrementsFromDataAssimilation(stencil_tests.StencilTest):
     def input_data(
         data_alloc: stencil_tests.DataAllocationWrapper, grid: base.Grid
     ) -> dict[str, gtx.Field | state_utils.ScalarType]:
-        z_exner_expl = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=ta.wpfloat)
+        z_exner_expl = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=ta.wp_icon)
         exner_incr = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=ta.vpfloat)
-        z_rho_expl = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=ta.wpfloat)
+        z_rho_expl = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=ta.wp_icon)
         rho_incr = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=ta.vpfloat)
         iau_wgt_dyn = ta.wpfloat("8.0")
 

@@ -18,6 +18,7 @@ from icon4py.model.atmosphere.dycore.stencils.compute_edge_diagnostics_for_dycor
 )
 from icon4py.model.common import constants, dimension as dims
 from icon4py.model.common.grid import base, horizontal as h_grid
+from icon4py.model.common.type_alias import vpfloat, wpfloat
 
 from . import test_dycore_utils
 
@@ -211,39 +212,53 @@ class TestApplyDivergenceDampingAndUpdateVn(test_helpers.StencilTest):
         request: pytest.FixtureRequest,
     ) -> dict:
         current_vn = data_alloc.random_field(dims.EdgeDim, dims.KDim)
-        horizontal_mask_for_3d_divdamp = data_alloc.random_field(dims.EdgeDim)
-        scaling_factor_for_3d_divdamp = data_alloc.random_field(dims.KDim)
-        dwdz_at_cells_on_model_levels = data_alloc.random_field(dims.CellDim, dims.KDim)
-        inv_dual_edge_length = data_alloc.random_field(dims.EdgeDim)
-        corrector_normal_wind_advective_tendency = data_alloc.random_field(dims.EdgeDim, dims.KDim)
-        predictor_normal_wind_advective_tendency = data_alloc.random_field(dims.EdgeDim, dims.KDim)
+        horizontal_mask_for_3d_divdamp = data_alloc.random_field(dims.EdgeDim, dtype=wpfloat)
+        scaling_factor_for_3d_divdamp = data_alloc.random_field(dims.KDim, dtype=wpfloat)
+        dwdz_at_cells_on_model_levels = data_alloc.random_field(
+            dims.CellDim, dims.KDim, dtype=vpfloat
+        )
+        inv_dual_edge_length = data_alloc.random_field(dims.EdgeDim, dtype=wpfloat)
+        corrector_normal_wind_advective_tendency = data_alloc.random_field(
+            dims.EdgeDim, dims.KDim, dtype=vpfloat
+        )
+        predictor_normal_wind_advective_tendency = data_alloc.random_field(
+            dims.EdgeDim, dims.KDim, dtype=vpfloat
+        )
         normal_wind_tendency_due_to_slow_physics_process = data_alloc.random_field(
-            dims.EdgeDim, dims.KDim
+            dims.EdgeDim,
+            dims.KDim,
+            dtype=vpfloat,
         )
         horizontal_gradient_of_normal_wind_divergence = data_alloc.random_field(
-            dims.EdgeDim, dims.KDim
+            dims.EdgeDim,
+            dims.KDim,
+            dtype=vpfloat,
         )
-        normal_wind_iau_increment = data_alloc.random_field(dims.EdgeDim, dims.KDim)
+        normal_wind_iau_increment = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=vpfloat)
         next_vn = data_alloc.random_field(dims.EdgeDim, dims.KDim)
-        theta_v_at_edges_on_model_levels = data_alloc.random_field(dims.EdgeDim, dims.KDim)
-        horizontal_pressure_gradient = data_alloc.random_field(dims.EdgeDim, dims.KDim)
-        geofac_grdiv = data_alloc.random_field(dims.EdgeDim, dims.E2C2EODim)
-        interpolated_fourth_order_divdamp_factor = data_alloc.random_field(dims.KDim)
-        nudgecoeff_e = data_alloc.random_field(dims.EdgeDim)
+        theta_v_at_edges_on_model_levels = data_alloc.random_field(
+            dims.EdgeDim, dims.KDim, dtype=wpfloat
+        )
+        horizontal_pressure_gradient = data_alloc.random_field(
+            dims.EdgeDim, dims.KDim, dtype=vpfloat
+        )
+        geofac_grdiv = data_alloc.random_field(dims.EdgeDim, dims.E2C2EODim, dtype=wpfloat)
+        interpolated_fourth_order_divdamp_factor = data_alloc.random_field(dims.KDim, dtype=wpfloat)
+        nudgecoeff_e = data_alloc.random_field(dims.EdgeDim, dtype=wpfloat)
 
-        mean_cell_area = 1000.0
-        max_nudging_coefficient = 0.3
+        mean_cell_area = wpfloat(1000.0)
+        max_nudging_coefficient = wpfloat(0.3)
         wp_eps = constants.WP_EPS
 
-        dtime = 0.9
-        advection_implicit_weight_parameter = 0.75
-        advection_explicit_weight_parameter = 0.25
-        iau_wgt_dyn = 1.0
+        dtime = wpfloat(0.9)
+        advection_implicit_weight_parameter = wpfloat(0.75)
+        advection_explicit_weight_parameter = wpfloat(0.25)
+        iau_wgt_dyn = wpfloat(1.0)
         is_iau_active = request.param["is_iau_active"]
         fourth_order_divdamp_factor = 0.004
-        second_order_divdamp_factor = request.param["second_order_divdamp_factor"]
+        second_order_divdamp_factor = wpfloat(request.param["second_order_divdamp_factor"])
         divdamp_order = request.param["divdamp_order"]
-        second_order_divdamp_scaling_coeff = 34497.62082646618  # for icon-ch1(_medium)
+        second_order_divdamp_scaling_coeff = wpfloat(34497.62082646618)  # for icon-ch1(_medium)
         apply_2nd_order_divergence_damping = (
             divdamp_order == DivergenceDampingOrder.COMBINED
         ) and (second_order_divdamp_scaling_coeff > 1.0e-6)

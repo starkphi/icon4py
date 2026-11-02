@@ -40,10 +40,10 @@ class TestComputeVnOnLateralBoundary(stencil_tests.StencilTest):
     def input_data(
         data_alloc: stencil_tests.DataAllocationWrapper, grid: base.Grid
     ) -> dict[str, gtx.Field | state_utils.ScalarType]:
-        grf_tend_vn = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=ta.wpfloat)
-        vn_now = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=ta.wpfloat)
-        vn_new = data_alloc.zero_field(dims.EdgeDim, dims.KDim, dtype=ta.wpfloat)
-        dtime = ta.wpfloat("6.0")
+        grf_tend_vn = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=ta.wp_icon)
+        vn_now = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=ta.wp_icon)
+        vn_new = data_alloc.zero_field(dims.EdgeDim, dims.KDim, dtype=ta.wp_icon)
+        dtime = ta.wp_icon("6.0")
 
         return dict(
             grf_tend_vn=grf_tend_vn,

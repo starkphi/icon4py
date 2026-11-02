@@ -18,7 +18,7 @@ from icon4py.model.atmosphere.dycore.stencils.add_analysis_increments_to_vn impo
 from icon4py.model.common import dimension as dims
 from icon4py.model.common.grid import base
 from icon4py.model.common.states import utils as state_utils
-from icon4py.model.common.type_alias import vpfloat, wpfloat
+from icon4py.model.common.type_alias import vpfloat, wp_icon, wpfloat
 from icon4py.model.testing import stencil_tests
 
 
@@ -50,7 +50,7 @@ class TestAddAnalysisIncrementsToVn(stencil_tests.StencilTest):
         data_alloc: stencil_tests.DataAllocationWrapper, grid: base.Grid
     ) -> dict[str, gtx.Field | state_utils.ScalarType]:
         vn_incr = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=vpfloat)
-        vn = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=wpfloat)
+        vn = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=wp_icon)
         iau_wgt_dyn = wpfloat("5.0")
 
         return dict(

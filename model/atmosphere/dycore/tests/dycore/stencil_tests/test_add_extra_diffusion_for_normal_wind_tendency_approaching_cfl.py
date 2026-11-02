@@ -19,6 +19,7 @@ from icon4py.model.atmosphere.dycore.stencils.velocity_advection_terms import Ve
 from icon4py.model.common import dimension as dims, type_alias as ta
 from icon4py.model.common.grid import base
 from icon4py.model.common.states import utils as state_utils
+from icon4py.model.common.type_alias import wpfloat
 from icon4py.model.testing import stencil_tests
 
 
@@ -111,14 +112,14 @@ class TestAddExtraDiffusionForNormalWindTendencyApproachingCfl(stencil_tests.Ste
         c_lin_e = data_alloc.random_field(dims.EdgeDim, dims.E2CDim, dtype=ta.wpfloat)
         z_w_con_c_full = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=ta.vpfloat)
         ddqz_z_full_e = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=ta.vpfloat, low=0.0)
-        area_edge = data_alloc.random_field(dims.EdgeDim)
-        tangent_orientation = data_alloc.random_field(dims.EdgeDim)
-        inv_primal_edge_length = data_alloc.random_field(dims.EdgeDim)
+        area_edge = data_alloc.random_field(dims.EdgeDim, dtype=wpfloat)
+        tangent_orientation = data_alloc.random_field(dims.EdgeDim, dtype=wpfloat)
+        inv_primal_edge_length = data_alloc.random_field(dims.EdgeDim, dtype=wpfloat)
         zeta = data_alloc.random_field(dims.VertexDim, dims.KDim, dtype=ta.vpfloat)
-        geofac_grdiv = data_alloc.random_field(dims.EdgeDim, dims.E2C2EODim)
-        vn = data_alloc.random_field(dims.EdgeDim, dims.KDim)
+        geofac_grdiv = data_alloc.random_field(dims.EdgeDim, dims.E2C2EODim, dtype=wpfloat)
+        vn = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=wpfloat)
         ddt_vn_apc = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=ta.vpfloat)
-        dtime = 2.0
+        dtime = wpfloat(2.0)
         return dict(
             levelmask=levelmask,
             ddqz_z_full_e=ddqz_z_full_e,

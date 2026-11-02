@@ -18,6 +18,7 @@ from icon4py.model.atmosphere.dycore.stencils.compute_horizontal_advection_of_rh
 from icon4py.model.common import dimension as dims, type_alias as ta
 from icon4py.model.common.grid import base
 from icon4py.model.common.states import utils as state_utils
+from icon4py.model.common.type_alias import wpfloat
 from icon4py.model.testing import stencil_tests
 
 
@@ -268,7 +269,7 @@ class TestComputeHorizontalAvectionOfRhoAndTheta(stencil_tests.StencilTest):
         dual_normal_cell_1 = data_alloc.random_field(dims.EdgeDim, dims.E2CDim, dtype=ta.wpfloat)
         primal_normal_cell_2 = data_alloc.random_field(dims.EdgeDim, dims.E2CDim, dtype=ta.wpfloat)
         dual_normal_cell_2 = data_alloc.random_field(dims.EdgeDim, dims.E2CDim, dtype=ta.wpfloat)
-        p_dthalf = 2.0
+        p_dthalf = wpfloat(2.0)
 
         rho_ref_me = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=ta.vpfloat)
         theta_ref_me = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=ta.vpfloat)

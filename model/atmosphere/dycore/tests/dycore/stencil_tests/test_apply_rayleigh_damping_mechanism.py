@@ -18,7 +18,7 @@ from icon4py.model.atmosphere.dycore.stencils.apply_rayleigh_damping_mechanism i
 from icon4py.model.common import dimension as dims
 from icon4py.model.common.grid import base
 from icon4py.model.common.states import utils as state_utils
-from icon4py.model.common.type_alias import wpfloat
+from icon4py.model.common.type_alias import wp_icon, wpfloat
 from icon4py.model.testing import stencil_tests
 
 
@@ -52,8 +52,8 @@ class TestApplyRayleighDampingMechanism(stencil_tests.StencilTest):
     def input_data(
         data_alloc: stencil_tests.DataAllocationWrapper, grid: base.Grid
     ) -> dict[str, gtx.Field | state_utils.ScalarType]:
-        z_raylfac = data_alloc.random_field(dims.KHalfDim, dtype=wpfloat)
-        w = data_alloc.random_field(dims.CellDim, dims.KHalfDim, dtype=wpfloat)
+        z_raylfac = data_alloc.random_field(dims.KHalfDim, dtype=wp_icon)
+        w = data_alloc.random_field(dims.CellDim, dims.KHalfDim, dtype=wp_icon)
 
         return dict(
             z_raylfac=z_raylfac,

@@ -18,7 +18,7 @@ from icon4py.model.atmosphere.dycore.stencils.accumulate_prep_adv_fields import 
 from icon4py.model.common import dimension as dims
 from icon4py.model.common.grid import base
 from icon4py.model.common.states import utils as state_utils
-from icon4py.model.common.type_alias import wpfloat
+from icon4py.model.common.type_alias import wp_icon, wpfloat
 from icon4py.model.testing import stencil_tests
 
 
@@ -65,9 +65,9 @@ class TestAccumulatePrepAdvFields(stencil_tests.StencilTest):
         data_alloc: stencil_tests.DataAllocationWrapper, grid: base.Grid
     ) -> dict[str, gtx.Field | state_utils.ScalarType]:
         mass_fl_e = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=wpfloat)
-        mass_flx_me = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=wpfloat)
+        mass_flx_me = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=wp_icon)
         z_vn_avg = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=wpfloat)
-        vn_traj = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=wpfloat)
+        vn_traj = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=wp_icon)
         r_nsubsteps = wpfloat("9.0")
 
         return dict(
