@@ -297,12 +297,12 @@ class Icon4pyDriver:
         tracer_prep_adv: advection_states.AdvectionPrepAdvState,
     ) -> None:
         log.debug(f"Running {self.solve_nonhydro.__class__}")
-        # self._do_dyn_substepping(
-        #     solve_nonhydro_diagnostic_state,
-        #     prognostic_states,
-        #     prep_adv,
-        #     do_prep_adv,
-        # )
+        self._do_dyn_substepping(
+            solve_nonhydro_diagnostic_state,
+            prognostic_states,
+            prep_adv,
+            do_prep_adv,
+        )
 
         if self.diffusion.config.apply_to_horizontal_wind:
             log.debug(f"Running {self.diffusion.__class__}")
@@ -811,17 +811,21 @@ def initialize_driver(
     )
 
     if os.environ.get("USE_STRUCTURED_BACKEND", "0") == "1":
-        if "gtfn" not in backend_name and "dace" not in backend_name:
+        # initialize_driver receives the resolved backend_like (e.g. {"backend_factory": make_custom_gtfn_backend, ...}),
+        # not the backend name any more: identify GTFN / DaCe from the factory name.
+        _factory = backend_like.get("backend_factory") if isinstance(backend_like, dict) else None
+        backend_label = str(getattr(_factory, "__name__", backend_like)).lower()
+        if "gtfn" not in backend_label and "dace" not in backend_label:
             log.warning(
                 "USE_STRUCTURED_BACKEND=1 requested, but backend '%s' is not GTFN or DaCe. Skipping structured wrapper injection.",
-                backend_name,
+                backend_label,
             )
         else:
             _wrap_granule_programs_for_structured_backend(
                 granules=(diffusion_granule, solve_nonhydro_granule, tracer_advection_granule),
                 grid=grid_manager.grid,
                 allocator=allocator,
-                backend_like=driver_utils.get_backend_from_name(backend_name),
+                backend_like=backend_like,
             )
 
     icon4py_driver = Icon4pyDriver(

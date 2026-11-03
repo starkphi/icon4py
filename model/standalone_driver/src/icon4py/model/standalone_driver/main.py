@@ -83,6 +83,13 @@ def main(
             help="Force a single-node run even if MPI is available. Useful to build serial reference output within MPI test sessions.",
         ),
     ] = False,
+    initial_condition_name: Annotated[
+        str,
+        typer.Option(
+            "--initial-condition",
+            help="Initial condition: 'jabw' (Jablonowski-Williamson, global grids) or 'gaussian_bump' (parallelogram grids).",
+        ),
+    ] = "jabw",
 ) -> tuple[driver_states.DriverStates, decomp_defs.DecompositionInfo]:
     """
     This is a function that runs the icon4py driver from a grid file with the initial
@@ -106,7 +113,16 @@ def main(
     )
 
     log.info("Generating the initial condition")
-    ds: driver_states.DriverStates = initial_condition.gaussian_bump(
+    ic_kwargs = {}
+    if initial_condition_name == "jabw":
+        ic_function = initial_condition.jablonowski_williamson
+        ic_kwargs["exchange"] = icon4py_driver.exchange
+    elif initial_condition_name == "gaussian_bump":
+        ic_function = initial_condition.gaussian_bump  # takes no exchange argument
+    else:
+        raise ValueError(f"Unknown initial condition '{initial_condition_name}'.")
+    log.info(f"Initial condition: {initial_condition_name}")
+    ds: driver_states.DriverStates = ic_function(
         grid=icon4py_driver.grid,
         geometry_field_source=icon4py_driver.static_field_factories.geometry_field_source,
         interpolation_field_source=icon4py_driver.static_field_factories.interpolation_field_source,
@@ -116,7 +132,7 @@ def main(
         model_top_height=icon4py_driver.vertical_grid_config.model_top_height,
         stretch_factor=icon4py_driver.vertical_grid_config.stretch_factor,
         damping_height=icon4py_driver.vertical_grid_config.rayleigh_damping_height,
-        exchange=icon4py_driver.exchange,
+        **ic_kwargs,
     )
 
     log.info("driver setup: DONE")
