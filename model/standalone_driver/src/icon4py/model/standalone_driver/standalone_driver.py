@@ -730,11 +730,14 @@ def _read_config(
 
     profiling_stats = driver_config.ProfilingStats() if enable_profiling else None
 
+    # Overridable for finer grids (default 300 s x 6 steps = 30 min): DRIVER_DTIME [s], DRIVER_NSTEPS.
+    dtime_seconds = float(os.environ.get("DRIVER_DTIME", "300"))
+    n_steps = int(os.environ.get("DRIVER_NSTEPS", "6"))
     icon4py_driver_config = driver_config.DriverConfig(
         experiment_name="Jablonowski_Williamson",
         output_path=output_path,
-        dtime=datetime.timedelta(seconds=300.0),
-        end_date=datetime.datetime(1, 1, 1, 0, 30, 0),
+        dtime=datetime.timedelta(seconds=dtime_seconds),
+        end_date=datetime.datetime(1, 1, 1) + datetime.timedelta(seconds=dtime_seconds * n_steps),
         apply_extra_second_order_divdamp=False,
         ndyn_substeps=5,
         vertical_cfl_threshold=ta.wpfloat("1.05"),
