@@ -61,6 +61,7 @@ def _make_structured_program_adapter(
     wrapper: Callable[..., None],
     static_kwargs: dict[str, object],
     param_names: tuple[str, ...],
+    shadow: Callable[[Callable[..., None], dict], None] | None = None,
 ) -> Callable[..., None]:
     def _call(*args, **kwargs):
         if args and not param_names:
@@ -82,9 +83,76 @@ def _make_structured_program_adapter(
             )
 
         merged_kwargs.update(kwargs)
-        return wrapper(**merged_kwargs)
+        if shadow is None:
+            return wrapper(**merged_kwargs)
+        return shadow(wrapper, merged_kwargs)
 
     return _call
+
+
+def _make_shadow_runner(
+    operator: object, backend_like: object, connectivities: dict, name: str
+) -> Callable[[Callable[..., None], dict], None]:
+    """STRUCTURED_SHADOW=1: run the structured program, then the unstructured one on copies of the same inputs,
+    log every field that differs, and keep the unstructured result (so later programs see identical inputs and
+    differences do not propagate). Debug aid to find which program makes structured differ from unstructured."""
+    import numpy as np
+
+    from icon4py.model.common import model_options
+
+    # No translation file cache for the reference: its key (fingerprint_compilable_program) does not include the
+    # structured mode, so it would hand back the structured C++ the wrapper translated for the same program.
+    reference_like = (
+        {**backend_like, "otf_workflow__cached_translation": False}
+        if isinstance(backend_like, dict)
+        else backend_like
+    )
+    unstructured = operator.with_backend(model_options.customize_backend(operator, reference_like))
+    tol = float(os.environ.get("STRUCTURED_SHADOW_RTOL", "1e-10"))
+    counter = {"n": 0}
+
+    def _is_field(v: object) -> bool:
+        return hasattr(v, "ndarray") and hasattr(v, "domain")
+
+    def _run(wrapper: Callable[..., None], kwargs: dict) -> None:
+        counter["n"] += 1
+        copies: dict[int, object] = {}
+        for v in kwargs.values():
+            if _is_field(v) and id(v) not in copies:
+                copies[id(v)] = gtx.as_field(v.domain, v.ndarray.copy())
+        wrapper(**kwargs)
+        ukwargs = {k: copies.get(id(v), v) if _is_field(v) else v for k, v in kwargs.items()}
+        ukwargs["offset_provider"] = connectivities
+        # gt4py reads USE_STRUCTURED_BACKEND at compile time (pass_manager, gtfn_module, type inference):
+        # switch it off for the reference build, else the "unstructured" program gets the structured passes.
+        saved = os.environ.get("USE_STRUCTURED_BACKEND")
+        os.environ["USE_STRUCTURED_BACKEND"] = "0"
+        try:
+            unstructured(**ukwargs)
+        finally:
+            os.environ["USE_STRUCTURED_BACKEND"] = saved if saved is not None else "0"
+        for k, v in kwargs.items():
+            if not _is_field(v):
+                continue
+            s, u = np.asarray(v.asnumpy()), np.asarray(copies[id(v)].asnumpy())
+            if s.dtype == bool or not np.issubdtype(s.dtype, np.number):
+                bad = s != u
+                scale, dmax = 1.0, float(bad.sum())
+            else:
+                d = np.abs(s.astype(float) - u.astype(float))
+                scale = max(float(np.nanmax(np.abs(u))) if u.size else 0.0, 1e-300)
+                bad = ~np.isclose(s, u, rtol=tol, atol=tol * scale, equal_nan=True)
+                dmax = float(np.nanmax(d)) if d.size else 0.0
+            if bad.any():
+                rows = np.unique(np.nonzero(bad)[0])
+                log.warning(
+                    "SHADOW %s#%d %s: %d/%d differ, max_abs=%.3e (field max %.3e), first rows %s (of %d)",
+                    name, counter["n"], k, int(bad.sum()), bad.size, dmax, scale, rows[:8].tolist(), rows.size,
+                )
+            v.ndarray[...] = copies[id(v)].ndarray
+        log.info("SHADOW %s#%d checked", name, counter["n"])
+
+    return _run
 
 
 def _wrap_granule_programs_for_structured_backend(
@@ -162,6 +230,12 @@ def _wrap_granule_programs_for_structured_backend(
                 wrapper=wrapper,
                 static_kwargs=static_kwargs,
                 param_names=param_names,
+                shadow=_make_shadow_runner(
+                    wrapper._operator, backend_like, grid.connectivities,
+                    f"{type(granule).__name__}.{attr_name}",
+                )
+                if os.environ.get("STRUCTURED_SHADOW", "0") == "1"
+                else None,
             )
             setattr(granule, attr_name, adapter)
             wrapped_count += 1
