@@ -33,10 +33,10 @@ def _flow_deformation(
     div = divergence(vn, geofac_div)
 
     wgtfac_c_wp = astype(wgtfac_c, wpfloat)
-    div_ic_wp = astype(wgtfac_c * div(dims.KHalfDim + 0.5), wpfloat) + (
+    div_ic_wp = astype(wgtfac_c_wp * div(dims.KHalfDim + 0.5), wpfloat) + (
         wpfloat("1.0") - wgtfac_c_wp
     ) * div(dims.KHalfDim - 0.5)
-    hdef_ic_wp = astype(wgtfac_c * kh_c(dims.KHalfDim + 0.5), wpfloat) + (
+    hdef_ic_wp = astype(wgtfac_c_wp * kh_c(dims.KHalfDim + 0.5), wpfloat) + (
         wpfloat("1.0") - wgtfac_c_wp
     ) * kh_c(dims.KHalfDim - 0.5)
     hdef_ic_wp = hdef_ic_wp * hdef_ic_wp
