@@ -13,7 +13,7 @@ import pytest
 from icon4py.model.atmosphere.tracer_advection.stencils.compute_antidiffusive_cell_fluxes_and_min_max import (
     compute_antidiffusive_cell_fluxes_and_min_max,
 )
-from icon4py.model.common import dimension as dims
+from icon4py.model.common import dimension as dims, type_alias as ta
 from icon4py.model.common.grid import base
 from icon4py.model.testing import stencil_tests
 
@@ -89,11 +89,11 @@ class TestComputeAntidiffusiveCellFluxesAndMinMax(stencil_tests.StencilTest):
         p_cc = data_alloc.random_field(dims.CellDim, dims.KDim)
         p_dtime = 5.0
 
-        z_mflx_anti_in = data_alloc.zero_field(dims.CellDim, dims.KDim)
-        z_mflx_anti_out = data_alloc.zero_field(dims.CellDim, dims.KDim)
+        z_mflx_anti_in = data_alloc.zero_field(dims.CellDim, dims.KDim, dtype=ta.vpfloat)
+        z_mflx_anti_out = data_alloc.zero_field(dims.CellDim, dims.KDim, dtype=ta.vpfloat)
         z_tracer_new_low = data_alloc.zero_field(dims.CellDim, dims.KDim)
-        z_tracer_max = data_alloc.zero_field(dims.CellDim, dims.KDim)
-        z_tracer_min = data_alloc.zero_field(dims.CellDim, dims.KDim)
+        z_tracer_max = data_alloc.zero_field(dims.CellDim, dims.KDim, dtype=ta.vpfloat)
+        z_tracer_min = data_alloc.zero_field(dims.CellDim, dims.KDim, dtype=ta.vpfloat)
 
         return dict(
             geofac_div=geofac_div,
