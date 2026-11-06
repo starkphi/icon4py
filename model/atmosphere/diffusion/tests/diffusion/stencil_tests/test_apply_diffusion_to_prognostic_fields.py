@@ -231,7 +231,7 @@ def calculate_nabla4_numpy(
 class TestApplyDiffusionToPrognosticFields(stencil_tests.StencilTest):
     PROGRAM = apply_diffusion_to_prognostic_fields
     OUTPUTS = ("vn", "w", "dwdx", "dwdy", "theta_v", "exner", "div_ic", "hdef_ic")
-    ABSOLUTE_TOLERANCE = 0.0 if test_utils.wp_is_dp else 3e-7
+    ABSOLUTE_TOLERANCE = 0.0 if test_utils.vp_is_dp else 3e-7
     STATIC_PARAMS = {
         stencil_tests.StandardStaticVariants.NONE: (),
         stencil_tests.StandardStaticVariants.COMPILE_TIME_DOMAIN: (

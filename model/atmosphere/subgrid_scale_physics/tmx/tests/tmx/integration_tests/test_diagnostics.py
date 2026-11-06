@@ -99,7 +99,7 @@ def test_tmx_init_and_run_diagnostics_single_step(
         ),
         ("height_above_ground", metric_state.height_above_ground, exit_savepoint.ghf()),
     ):
-        if test_utils.wp_is_dp:
+        if test_utils.vp_is_dp:
             np.testing.assert_array_equal(computed.asnumpy(), reference.asnumpy(), err_msg=name)
         else:
             test_utils.assert_dallclose(computed.asnumpy(), reference.asnumpy(), err_msg=name)
@@ -194,8 +194,8 @@ def test_tmx_init_and_run_diagnostics_single_step(
         test_utils.assert_dallclose(
             getattr(diagnostic_state, name).asnumpy()[:, k_slice],
             getattr(exit_savepoint, name)().asnumpy()[:, k_slice],
-            atol=atol if test_utils.wp_is_dp else single_precision_atol[name],
-            rtol=rtol if test_utils.wp_is_dp else single_precision_rtol,
+            atol=atol if test_utils.vp_is_dp else single_precision_atol[name],
+            rtol=rtol if test_utils.vp_is_dp else single_precision_rtol,
             err_msg=name,
         )
     # cvair is an input of tmx in ICON, computed by get_cvair in the driver and serialized at
@@ -203,7 +203,7 @@ def test_tmx_init_and_run_diagnostics_single_step(
     test_utils.assert_dallclose(
         diagnostic_state.cv_air.asnumpy(),
         entry_savepoint.cvair().asnumpy(),
-        atol=0.0 if test_utils.wp_is_dp else 0.1,
-        rtol=5.0e-16 if test_utils.wp_is_dp else single_precision_rtol,
+        atol=0.0 if test_utils.vp_is_dp else 0.1,
+        rtol=5.0e-16 if test_utils.vp_is_dp else single_precision_rtol,
         err_msg="cv_air",
     )
