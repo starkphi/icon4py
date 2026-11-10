@@ -899,7 +899,12 @@ def initialize_driver(
             )
         else:
             _wrap_granule_programs_for_structured_backend(
-                granules=(diffusion_granule, solve_nonhydro_granule, tracer_advection_granule),
+                granules=(
+                    diffusion_granule,
+                    solve_nonhydro_granule,
+                    solve_nonhydro_granule.velocity_advection,
+                    tracer_advection_granule,
+                ),
                 grid=grid_manager.grid,
                 allocator=allocator,
                 backend_like=backend_like,
