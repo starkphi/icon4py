@@ -23,6 +23,7 @@ from icon4py.model.common.grid import (
     base,
     geometry,
     geometry_attributes,
+    geometry_config,
     grid_manager as gm,
     gridfile,
     icon,
@@ -41,7 +42,9 @@ from icon4py.model.testing import (
 )
 from icon4py.model.testing.fixtures.datatest import (
     backend,
+    download_ser_data,
     experiment,
+    experiment_description,
     grid_description,
     process_props,
     topography_savepoint,
@@ -53,13 +56,14 @@ from . import utils
 _log = logging.getLogger(__file__)
 
 
+@pytest.mark.datatest
 @pytest.mark.parametrize("process_props", [True], indirect=True)
 @pytest.mark.mpi(min_size=2)
 def test_grid_manager_validate_decomposer(
     process_props: decomp_defs.ProcessProperties,
     experiment: test_defs.Experiment,
 ) -> None:
-    if experiment.grid.params.limited_area:
+    if experiment.grid.limited_area:
         pytest.xfail("Limited-area grids not yet supported")
 
     file = dt_utils.get_grid_filepath(experiment.grid)
@@ -80,20 +84,13 @@ def test_grid_manager_validate_decomposer(
 
 
 def _get_neighbor_tables(grid: base.Grid) -> dict:
-    return {
-        k: v.ndarray
-        for k, v in grid.connectivities.items()
-        if gtx_common.is_neighbor_connectivity(v)
-    }
+    return {k: v.ndarray for k, v in grid.connectivities.items() if gtx_common.is_neighbor_table(v)}
 
 
 # These fields can't be computed with the embedded backend for one reason or
 # another, so we declare them here for xfailing.
 embedded_broken_fields = {
     metrics_attributes.DDQZ_Z_HALF,
-    metrics_attributes.DEEPATMO_DIVH,
-    metrics_attributes.DEEPATMO_DIVZL,
-    metrics_attributes.DEEPATMO_DIVZU,
     metrics_attributes.EXNER_EXFAC,
     metrics_attributes.MAXHGTD_AVG,
     metrics_attributes.MAXSLP_AVG,
@@ -122,6 +119,8 @@ def _make_single_rank_geometry(
         decomposition_info=grid_manager.decomposition_info,
         extra_fields=grid_manager.geometry_fields,
         metadata=geometry_attributes.attrs,
+        config=geometry_config.GeometryConfig(),
+        process_props=decomp_defs.SingleNodeProcessProperties(),
     )
     return grid_manager, grid_geometry
 
@@ -147,10 +146,8 @@ def _make_multi_rank_geometry(
         decomposition_info=grid_manager.decomposition_info,
         extra_fields=grid_manager.geometry_fields,
         metadata=geometry_attributes.attrs,
-        exchange=decomp_defs.create_exchange(process_props, grid_manager.decomposition_info),
-        global_reductions=decomp_defs.create_reduction(
-            process_props, grid_manager.decomposition_info
-        ),
+        config=geometry_config.GeometryConfig(),
+        process_props=process_props,
     )
     return grid_manager, grid_geometry
 
@@ -161,7 +158,7 @@ def _compare_geometry_fields_single_multi_rank(
     grid_description: test_defs.GridDescription,
     attrs_name: str,
 ) -> None:
-    if grid_description.params.limited_area:
+    if grid_description.limited_area:
         pytest.xfail("Limited-area grids not yet supported")
 
     if attrs_name in embedded_broken_fields and test_utils.is_embedded(backend):
@@ -193,6 +190,7 @@ def _compare_geometry_fields_single_multi_rank(
     field = multi_rank_geometry.get(attrs_name)
     dim = field_ref.domain.dims[0]
 
+    atol, rtol = test_utils.get_mpi_comparison_tolerance(backend, atol=1e-15, rtol=0.0)
     parallel_helpers.check_local_global_field(
         decomposition_info=multi_rank_gm.decomposition_info,
         process_props=process_props,
@@ -200,12 +198,14 @@ def _compare_geometry_fields_single_multi_rank(
         global_reference_field=field_ref.asnumpy(),
         local_field=field.asnumpy(),
         check_halos=True,
-        atol=1e-15,
+        atol=atol,
+        rtol=rtol,
     )
 
     _log.info(f"rank = {process_props.rank} - DONE")
 
 
+@pytest.mark.datatest
 @pytest.mark.level("unit")
 @pytest.mark.mpi
 @pytest.mark.parametrize("process_props", [True], indirect=True)
@@ -245,6 +245,7 @@ def test_geometry_fields_compare_single_multi_rank_unit(
     _compare_geometry_fields_single_multi_rank(process_props, backend, grid_description, attrs_name)
 
 
+@pytest.mark.datatest
 @pytest.mark.level("integration")
 @pytest.mark.mpi
 @pytest.mark.parametrize("process_props", [True], indirect=True)
@@ -294,7 +295,7 @@ def _compare_interpolation_fields_single_multi_rank(
     experiment: test_defs.Experiment,
     attrs_name: str,
 ) -> None:
-    if experiment.grid.params.limited_area:
+    if experiment.grid.limited_area:
         pytest.xfail("Limited-area grids not yet supported")
 
     if attrs_name in embedded_broken_fields and test_utils.is_embedded(backend):
@@ -309,9 +310,10 @@ def _compare_interpolation_fields_single_multi_rank(
         grid=single_rank_gm.grid,
         decomposition_info=single_rank_gm.decomposition_info,
         geometry_source=single_rank_geometry,
+        config=experiment.config.interpolation,
         backend=backend,
         metadata=interpolation_attributes.attrs,
-        exchange=decomp_defs.SingleNodeExchange(),
+        process_props=decomp_defs.SingleNodeProcessProperties(),
     )
     _log.info(
         f"rank = {process_props.rank} : single node grid has size "
@@ -333,15 +335,25 @@ def _compare_interpolation_fields_single_multi_rank(
         grid=multi_rank_gm.grid,
         decomposition_info=multi_rank_gm.decomposition_info,
         geometry_source=multi_rank_geometry,
+        config=experiment.config.interpolation,
         backend=backend,
         metadata=interpolation_attributes.attrs,
-        exchange=decomp_defs.create_exchange(process_props, multi_rank_gm.decomposition_info),
+        process_props=process_props,
     )
 
     field_ref = single_rank_interpolation.get(attrs_name)
     field = multi_rank_interpolation.get(attrs_name)
     dim = field_ref.domain.dims[0]
 
+    atol, rtol = test_utils.get_mpi_comparison_tolerance(
+        backend,
+        atol=3e-9
+        if attrs_name.startswith("rbf")
+        else 1e-10
+        if attrs_name.startswith("pos_on_tplane")
+        else 1e-15,
+        rtol=0.0,
+    )
     parallel_helpers.check_local_global_field(
         decomposition_info=multi_rank_gm.decomposition_info,
         process_props=process_props,
@@ -349,16 +361,14 @@ def _compare_interpolation_fields_single_multi_rank(
         global_reference_field=field_ref.asnumpy(),
         local_field=field.asnumpy(),
         check_halos=True,
-        atol=3e-9
-        if attrs_name.startswith("rbf")
-        else 1e-10
-        if attrs_name.startswith("pos_on_tplane")
-        else 1e-15,
+        atol=atol,
+        rtol=rtol,
     )
 
     _log.info(f"rank = {process_props.rank} - DONE")
 
 
+@pytest.mark.datatest
 @pytest.mark.level("unit")
 @pytest.mark.mpi
 @pytest.mark.parametrize("process_props", [True], indirect=True)
@@ -389,6 +399,7 @@ def test_interpolation_fields_compare_single_multi_rank_unit(
     _compare_interpolation_fields_single_multi_rank(process_props, backend, experiment, attrs_name)
 
 
+@pytest.mark.datatest
 @pytest.mark.level("integration")
 @pytest.mark.mpi
 @pytest.mark.parametrize("process_props", [True], indirect=True)
@@ -419,7 +430,7 @@ def _compare_metrics_fields_single_multi_rank(
     experiment: test_defs.Experiment,
     attrs_name: str,
 ) -> None:
-    if experiment.grid.params.limited_area:
+    if experiment.grid.limited_area:
         pytest.xfail("Limited-area grids not yet supported")
 
     if attrs_name in embedded_broken_fields and test_utils.is_embedded(backend):
@@ -427,52 +438,35 @@ def _compare_metrics_fields_single_multi_rank(
 
     file = dt_utils.get_grid_filepath(experiment.grid)
 
-    (
-        lowest_layer_thickness,
-        model_top_height,
-        stretch_factor,
-        damping_height,
-        rayleigh_coeff,
-        exner_expol,
-        vwind_offctr,
-        rayleigh_type,
-        thslp_zdiffu,
-        thhgtd_zdiffu,
-    ) = test_defs.construct_metrics_config(experiment)
-    vertical_config = v_grid.VerticalGridConfig(
-        experiment.num_levels,
-        lowest_layer_thickness=lowest_layer_thickness,
-        model_top_height=model_top_height,
-        stretch_factor=stretch_factor,
-        rayleigh_damping_height=damping_height,
-    )
+    vertical_config = experiment.config.vertical_grid
     xp = data_alloc.import_array_ns(backend)
     allocator = model_backends.get_allocator(backend)
     vertical_grid = v_grid.VerticalGrid(
         config=vertical_config,
         vct_a=gtx.as_field(
-            (dims.KDim,),
-            xp.linspace(12000.0, 0.0, experiment.num_levels + 1),
+            (dims.KHalfDim,),
+            xp.linspace(12000.0, 0.0, experiment.config.vertical_grid.num_levels + 1),
             allocator=allocator,
         ),
         vct_b=gtx.as_field(
-            (dims.KDim,),
-            xp.linspace(12000.0, 0.0, experiment.num_levels + 1),
+            (dims.KHalfDim,),
+            xp.linspace(12000.0, 0.0, experiment.config.vertical_grid.num_levels + 1),
             allocator=allocator,
         ),
     )
 
     _log.info(f"running on {process_props.comm} with {process_props.comm_size} ranks")
     single_rank_gm, single_rank_geometry = _make_single_rank_geometry(
-        file, backend, allocator, num_levels=experiment.num_levels
+        file, backend, allocator, num_levels=experiment.config.vertical_grid.num_levels
     )
     single_rank_interpolation = interpolation_factory.InterpolationFieldsFactory(
         grid=single_rank_gm.grid,
         decomposition_info=single_rank_gm.decomposition_info,
         geometry_source=single_rank_geometry,
+        config=experiment.config.interpolation,
         backend=backend,
         metadata=interpolation_attributes.attrs,
-        exchange=decomp_defs.SingleNodeExchange(),
+        process_props=decomp_defs.SingleNodeProcessProperties(),
     )
     single_rank_metrics = metrics_factory.MetricsFieldsFactory(
         grid=single_rank_geometry.grid,
@@ -487,15 +481,10 @@ def _compare_metrics_fields_single_multi_rank(
             )
         ),
         interpolation_source=single_rank_interpolation,
+        config=experiment.config.metrics,
         backend=backend,
         metadata=metrics_attributes.attrs,
-        rayleigh_type=rayleigh_type,
-        rayleigh_coeff=rayleigh_coeff,
-        exner_expol=exner_expol,
-        vwind_offctr=vwind_offctr,
-        thslp_zdiffu=thslp_zdiffu,
-        thhgtd_zdiffu=thhgtd_zdiffu,
-        exchange=decomp_defs.SingleNodeExchange(),
+        process_props=decomp_defs.SingleNodeProcessProperties(),
     )
     _log.info(
         f"rank = {process_props.rank} : single node grid has size "
@@ -503,7 +492,11 @@ def _compare_metrics_fields_single_multi_rank(
     )
 
     multi_rank_gm, multi_rank_geometry = _make_multi_rank_geometry(
-        file, process_props, backend, allocator, num_levels=experiment.num_levels
+        file,
+        process_props,
+        backend,
+        allocator,
+        num_levels=experiment.config.vertical_grid.num_levels,
     )
     _log.info(
         f"rank = {process_props.rank} : {multi_rank_gm.decomposition_info.get_horizontal_size()!r}"
@@ -517,9 +510,10 @@ def _compare_metrics_fields_single_multi_rank(
         grid=multi_rank_gm.grid,
         decomposition_info=multi_rank_gm.decomposition_info,
         geometry_source=multi_rank_geometry,
+        config=experiment.config.interpolation,
         backend=backend,
         metadata=interpolation_attributes.attrs,
-        exchange=decomp_defs.create_exchange(process_props, multi_rank_gm.decomposition_info),
+        process_props=process_props,
     )
     multi_rank_metrics = metrics_factory.MetricsFieldsFactory(
         grid=multi_rank_geometry.grid,
@@ -534,31 +528,37 @@ def _compare_metrics_fields_single_multi_rank(
             )
         ),
         interpolation_source=multi_rank_interpolation,
+        config=experiment.config.metrics,
         backend=backend,
         metadata=metrics_attributes.attrs,
-        rayleigh_type=rayleigh_type,
-        rayleigh_coeff=rayleigh_coeff,
-        exner_expol=exner_expol,
-        vwind_offctr=vwind_offctr,
-        thslp_zdiffu=thslp_zdiffu,
-        thhgtd_zdiffu=thhgtd_zdiffu,
-        exchange=mpi_decomposition.GHexMultiNodeExchange(
-            process_props, multi_rank_gm.decomposition_info
-        ),
+        process_props=process_props,
     )
 
-    field_ref = single_rank_metrics.get(attrs_name)
-    field = multi_rank_metrics.get(attrs_name)
-
-    if isinstance(field_ref, state_utils.ScalarType):
-        assert isinstance(field, state_utils.ScalarType)
-        assert pytest.approx(field) == field_ref
+    if metrics_attributes.attrs[attrs_name].is_scalar:
+        scalar_ref = single_rank_metrics.get_scalar(attrs_name)
+        scalar = multi_rank_metrics.get_scalar(attrs_name)
+        assert pytest.approx(scalar) == scalar_ref
     else:
-        if model_backends.is_cpu_backend(backend) and test_utils.is_dace(backend):
+        field_ref = single_rank_metrics.get(attrs_name)
+        field = multi_rank_metrics.get(attrs_name)
+        if test_utils.is_dace(backend) and (
+            model_backends.is_cpu_backend(backend)
+            or (
+                model_backends.is_gpu_backend(backend)
+                and attrs_name
+                in {
+                    metrics_attributes.DDQZ_Z_FULL_E,
+                    metrics_attributes.RHO_REF_ME,
+                    metrics_attributes.THETA_REF_ME,
+                }
+            )
+        ):
             # TODO (jcanton,phimuell): figure out dace undeterministic behaviour
-            atol = 1e-13
+            atol = 2e-13
         else:
             atol = 0.0
+
+        atol, rtol = test_utils.get_mpi_comparison_tolerance(backend, atol=1e-15, rtol=0.0)
         parallel_helpers.check_local_global_field(
             decomposition_info=multi_rank_gm.decomposition_info,
             process_props=process_props,
@@ -567,11 +567,13 @@ def _compare_metrics_fields_single_multi_rank(
             local_field=field.asnumpy(),
             check_halos=True,
             atol=atol,
+            rtol=rtol,
         )
 
     _log.info(f"rank = {process_props.rank} - DONE")
 
 
+@pytest.mark.datatest
 @pytest.mark.level("unit")
 @pytest.mark.mpi
 @pytest.mark.parametrize("process_props", [True], indirect=True)
@@ -586,9 +588,6 @@ def _compare_metrics_fields_single_multi_rank(
         metrics_attributes.DDXN_Z_HALF_E,
         metrics_attributes.DDXT_Z_FULL,
         metrics_attributes.DDXT_Z_HALF_E,
-        metrics_attributes.DEEPATMO_DIVH,
-        metrics_attributes.DEEPATMO_DIVZL,
-        metrics_attributes.DEEPATMO_DIVZU,
         metrics_attributes.D_EXNER_DZ_REF_IC,
         metrics_attributes.EXNER_REF_MC,
         metrics_attributes.EXNER_W_IMPLICIT_WEIGHT_PARAMETER,
@@ -625,6 +624,7 @@ def test_metrics_fields_compare_single_multi_rank_unit(
     _compare_metrics_fields_single_multi_rank(process_props, backend, experiment, attrs_name)
 
 
+@pytest.mark.datatest
 @pytest.mark.level("integration")
 @pytest.mark.mpi
 @pytest.mark.parametrize("process_props", [True], indirect=True)
@@ -657,6 +657,7 @@ def test_metrics_fields_compare_single_multi_rank_integration(
 # MASK_PROG_HALO_C is defined specially only on halos, so we have a separate
 # test for it. It doesn't make sense to compare to a single-rank reference since
 # it has no halos.
+@pytest.mark.datatest
 @pytest.mark.mpi
 @pytest.mark.parametrize("process_props", [True], indirect=True)
 def test_metrics_mask_prog_halo_c(
@@ -664,42 +665,24 @@ def test_metrics_mask_prog_halo_c(
     backend: gtx_typing.Backend | None,
     experiment: test_defs.Experiment,
 ) -> None:
-    if experiment.grid.params.limited_area:
+    if experiment.grid.limited_area:
         pytest.xfail("Limited-area grids not yet supported")
 
     file = dt_utils.get_grid_filepath(experiment.grid)
 
-    (
-        lowest_layer_thickness,
-        model_top_height,
-        stretch_factor,
-        damping_height,
-        rayleigh_coeff,
-        exner_expol,
-        vwind_offctr,
-        rayleigh_type,
-        thslp_zdiffu,
-        thhgtd_zdiffu,
-    ) = test_defs.construct_metrics_config(experiment)
-    vertical_config = v_grid.VerticalGridConfig(
-        experiment.num_levels,
-        lowest_layer_thickness=lowest_layer_thickness,
-        model_top_height=model_top_height,
-        stretch_factor=stretch_factor,
-        rayleigh_damping_height=damping_height,
-    )
+    vertical_config = experiment.config.vertical_grid
     xp = data_alloc.import_array_ns(backend)
     allocator = model_backends.get_allocator(backend)
     vertical_grid = v_grid.VerticalGrid(
         config=vertical_config,
         vct_a=gtx.as_field(
-            (dims.KDim,),
-            xp.linspace(12000.0, 0.0, experiment.num_levels + 1),
+            (dims.KHalfDim,),
+            xp.linspace(12000.0, 0.0, experiment.config.vertical_grid.num_levels + 1),
             allocator=allocator,
         ),
         vct_b=gtx.as_field(
-            (dims.KDim,),
-            xp.linspace(12000.0, 0.0, experiment.num_levels + 1),
+            (dims.KHalfDim,),
+            xp.linspace(12000.0, 0.0, experiment.config.vertical_grid.num_levels + 1),
             allocator=allocator,
         ),
     )
@@ -707,7 +690,11 @@ def test_metrics_mask_prog_halo_c(
     _log.info(f"running on {process_props.comm} with {process_props.comm_size} ranks")
 
     multi_rank_gm, multi_rank_geometry = _make_multi_rank_geometry(
-        file, process_props, backend, allocator, num_levels=experiment.num_levels
+        file,
+        process_props,
+        backend,
+        allocator,
+        num_levels=experiment.config.vertical_grid.num_levels,
     )
     _log.info(
         f"rank = {process_props.rank} : {multi_rank_gm.decomposition_info.get_horizontal_size()!r}"
@@ -721,9 +708,10 @@ def test_metrics_mask_prog_halo_c(
         grid=multi_rank_gm.grid,
         decomposition_info=multi_rank_gm.decomposition_info,
         geometry_source=multi_rank_geometry,
+        config=experiment.config.interpolation,
         backend=backend,
         metadata=interpolation_attributes.attrs,
-        exchange=decomp_defs.create_exchange(process_props, multi_rank_gm.decomposition_info),
+        process_props=process_props,
     )
     multi_rank_metrics = metrics_factory.MetricsFieldsFactory(
         grid=multi_rank_geometry.grid,
@@ -738,22 +726,15 @@ def test_metrics_mask_prog_halo_c(
             )
         ),
         interpolation_source=multi_rank_interpolation,
+        config=experiment.config.metrics,
         backend=backend,
         metadata=metrics_attributes.attrs,
-        rayleigh_type=rayleigh_type,
-        rayleigh_coeff=rayleigh_coeff,
-        exner_expol=exner_expol,
-        vwind_offctr=vwind_offctr,
-        thslp_zdiffu=thslp_zdiffu,
-        thhgtd_zdiffu=thhgtd_zdiffu,
-        exchange=mpi_decomposition.GHexMultiNodeExchange(
-            process_props, multi_rank_gm.decomposition_info
-        ),
+        process_props=process_props,
     )
 
     attrs_name = metrics_attributes.MASK_PROG_HALO_C
     field = multi_rank_metrics.get(attrs_name).ndarray
-    c_refin_ctrl = multi_rank_metrics.get("c_refin_ctrl").ndarray
+    c_refin_ctrl = multi_rank_gm.grid.refinement_control[dims.CellDim].ndarray
     assert not (
         field[
             multi_rank_gm.decomposition_info.local_index(
@@ -772,6 +753,7 @@ def test_metrics_mask_prog_halo_c(
     _log.info(f"rank = {process_props.rank} - DONE")
 
 
+@pytest.mark.datatest
 @pytest.mark.mpi
 @pytest.mark.parametrize("process_props", [True], indirect=True)
 def test_validate_skip_values_in_distributed_connectivities(
@@ -779,7 +761,7 @@ def test_validate_skip_values_in_distributed_connectivities(
     experiment: test_defs.Experiment,
     backend: gtx_typing.Backend | None,
 ) -> None:
-    if experiment.grid.params.limited_area:
+    if experiment.grid.limited_area:
         pytest.xfail("Limited-area grids not yet supported")
 
     file = dt_utils.get_grid_filepath(experiment.grid)
@@ -791,20 +773,23 @@ def test_validate_skip_values_in_distributed_connectivities(
     )
     distributed_grid = multi_rank_grid_manager.grid
     for k, c in distributed_grid.connectivities.items():
-        if gtx_common.is_neighbor_connectivity(c):
+        if gtx_common.is_neighbor_table(c):
             skip_values_in_table = np.count_nonzero(c.asnumpy() == c.skip_value)
             found_skips = skip_values_in_table > 0
-            assert (
-                found_skips == (c.skip_value is not None)
-            ), f"rank={process_props.rank} / {process_props.comm_size}: {k} - # of skip values found in table = {skip_values_in_table},  skip value is {c.skip_value}"
+            assert found_skips == (c.skip_value is not None), (
+                f"rank={process_props.rank} / {process_props.comm_size}: {k} - # of skip values found in table = {skip_values_in_table},  skip value is {c.skip_value}"
+            )
             if skip_values_in_table > 0:
                 dim = gtx.Dimension(k, gtx.DimensionKind.LOCAL)
                 assert (
                     dim in icon.CONNECTIVITIES_ON_BOUNDARIES
                     or dim in icon.CONNECTIVITIES_ON_PENTAGONS
-                ), f"rank={process_props.rank} / {process_props.comm_size}: {k} has skip found in table, expected none"
+                ), (
+                    f"rank={process_props.rank} / {process_props.comm_size}: {k} has skip found in table, expected none"
+                )
 
 
+@pytest.mark.datatest
 @pytest.mark.mpi
 @pytest.mark.parametrize("process_props", [True], indirect=True)
 @pytest.mark.parametrize("grid", [test_defs.Grids.MCH_CH_R04B09_DSL])
@@ -824,6 +809,7 @@ def test_limited_area_raises(
         )
 
 
+@pytest.mark.datatest
 @pytest.mark.mpi
 @pytest.mark.parametrize("process_props", [True], indirect=True)
 @pytest.mark.parametrize(
@@ -857,7 +843,7 @@ def test_global_reductions_single_vs_multi_rank(
     edge_length on EdgeDim, dual_area on VertexDim) so that all three
     horizontal dimensions are exercised.
     """
-    if experiment.grid.params.limited_area:
+    if experiment.grid.limited_area:
         pytest.xfail("Limited-area grids not yet supported")
 
     allocator = model_backends.get_allocator(backend)

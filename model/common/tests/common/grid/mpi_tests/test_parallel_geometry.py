@@ -22,6 +22,7 @@ from icon4py.model.common.grid import (
     geometry,
     geometry_attributes as attrs,
     horizontal as h_grid,
+    icon as icon_grid,
 )
 from icon4py.model.common.math import vector_operations as vector_ops
 from icon4py.model.common.utils import data_allocation as data_alloc
@@ -33,9 +34,9 @@ from ...fixtures import (
     decomposition_info,
     download_ser_data,
     experiment,
+    experiment_description,
     geometry_from_savepoint,
     grid_savepoint,
-    icon_grid,
     process_props,
 )
 from .. import utils
@@ -54,34 +55,36 @@ lb_lateral = edge_domain(h_grid.Zone.LATERAL_BOUNDARY_LEVEL_2)
 @pytest.mark.mpi
 @pytest.mark.parametrize("process_props", [True], indirect=True)
 @pytest.mark.parametrize(
-    "attrs_name, grid_name",
+    "attrs_name, grid_name, lb_domain",
     [
-        (attrs.EDGE_AREA, "edge_areas"),
-        (attrs.EDGE_NORMAL_U, "primal_normal_v1"),
-        (attrs.EDGE_NORMAL_V, "primal_normal_v2"),
-        (attrs.EDGE_NORMAL_VERTEX_U, "primal_normal_vert_x"),
-        (attrs.EDGE_NORMAL_VERTEX_V, "primal_normal_vert_y"),
-        (attrs.EDGE_NORMAL_CELL_U, "primal_normal_cell_x"),
-        (attrs.EDGE_NORMAL_CELL_V, "primal_normal_cell_y"),
-        (attrs.EDGE_TANGENT_CELL_U, "dual_normal_cell_x"),
-        (attrs.EDGE_TANGENT_VERTEX_U, "dual_normal_vert_x"),
-        (attrs.EDGE_TANGENT_VERTEX_V, "dual_normal_vert_y"),
+        (attrs.EDGE_AREA, "edge_areas", lb_local),
+        (attrs.EDGE_NORMAL_U, "primal_normal_v1", lb_local),
+        (attrs.EDGE_NORMAL_V, "primal_normal_v2", lb_local),
+        (attrs.EDGE_NORMAL_VERTEX_U, "primal_normal_vert_x", lb_local),
+        (attrs.EDGE_NORMAL_VERTEX_V, "primal_normal_vert_y", lb_local),
+        (attrs.EDGE_NORMAL_CELL_U, "primal_normal_cell_x", lb_local),
+        (attrs.EDGE_NORMAL_CELL_V, "primal_normal_cell_y", lb_local),
+        (attrs.EDGE_TANGENT_CELL_U, "dual_normal_cell_x", lb_local),
+        (attrs.EDGE_TANGENT_VERTEX_U, "dual_normal_vert_x", lb_local),
+        (attrs.EDGE_TANGENT_VERTEX_V, "dual_normal_vert_y", lb_local),
     ],
 )
-def test_distributed_geometry_attrs(
+def test_distributed_geometry_attrs(  # noqa: PLR0917 [too-many-positional-arguments]
     grid_savepoint: sb.IconGridSavepoint,
     process_props: decomp_defs.ProcessProperties,
     decomposition_info: decomp_defs.DecompositionInfo,
     geometry_from_savepoint: geometry.GridGeometry,
     attrs_name: str,
     grid_name: str,
+    lb_domain: h_grid.Domain,
 ) -> None:
     parallel_helpers.check_comm_size(process_props)
     parallel_helpers.log_process_properties(process_props)
     parallel_helpers.log_local_field_size(decomposition_info)
     field_ref = grid_savepoint.__getattribute__(grid_name)().asnumpy()
     field = geometry_from_savepoint.get(attrs_name).asnumpy()
-    assert test_utils.dallclose(field, field_ref, atol=1e-12)
+    lb = geometry_from_savepoint.grid.start_index(lb_domain)
+    assert test_utils.dallclose(field[lb:], field_ref[lb:], atol=1e-12)
 
 
 @pytest.mark.datatest
@@ -95,7 +98,7 @@ def test_distributed_geometry_attrs(
         ("inverse_of_" + attrs.EDGE_LENGTH, "inverse_primal_edge_lengths", lb_local),
     ),
 )
-def test_distributed_geometry_attrs_for_inverse(
+def test_distributed_geometry_attrs_for_inverse(  # noqa: PLR0917 [too-many-positional-arguments]
     grid_savepoint: sb.IconGridSavepoint,
     process_props: decomp_defs.ProcessProperties,
     decomposition_info: decomp_defs.DecompositionInfo,
@@ -110,16 +113,6 @@ def test_distributed_geometry_attrs_for_inverse(
     grid_geometry = geometry_from_savepoint
     field_ref = grid_savepoint.__getattribute__(grid_name)().asnumpy()
     field = grid_geometry.get(attrs_name).asnumpy()
-    if (
-        grid_geometry.grid.geometry_type == base.GeometryType.TORUS
-        and grid_name == "inv_vert_vert_length"
-    ):
-        # TODO(msimberg, jcanton): icon fortran multiplies sphere radius even
-        # for torus grids. Fix submitted upstream. The following can be removed
-        # when fixed serialized data is available.
-        # https://gitlab.dkrz.de/icon-libraries/libiconmath/-/merge_requests/82
-        # https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1916
-        field = field / constants.EARTH_RADIUS
     lb = grid_geometry.grid.start_index(lb_domain)
     assert test_utils.dallclose(field[lb:], field_ref[lb:], rtol=5e-10)
 
@@ -139,7 +132,7 @@ def test_distributed_geometry_attrs_for_inverse(
         (attrs.EDGE_NORMAL_Z, "primal_cart_normal_z"),
     ],
 )
-def test_geometry_attr_no_halos(
+def test_geometry_attr_no_halos(  # noqa: PLR0917 [too-many-positional-arguments]
     grid_savepoint: sb.IconGridSavepoint,
     process_props: decomp_defs.ProcessProperties,
     decomposition_info: decomp_defs.DecompositionInfo,
@@ -167,7 +160,7 @@ def test_geometry_attr_no_halos(
         (attrs.VERTEX_X, attrs.VERTEX_Y, attrs.VERTEX_Z, dims.VertexDim),
     ],
 )
-def test_cartesian_geometry_attr_no_halos(
+def test_cartesian_geometry_attr_no_halos(  # noqa: PLR0917 [too-many-positional-arguments]
     grid_savepoint: sb.IconGridSavepoint,
     backend: gtx_typing.Backend,
     process_props: decomp_defs.ProcessProperties,
@@ -186,19 +179,19 @@ def test_cartesian_geometry_attr_no_halos(
     y_field = grid_geometry.get(y)
     z_field = grid_geometry.get(z)
     match grid_geometry.grid.geometry_type:
-        case base.GeometryType.ICOSAHEDRON:
+        case icon_grid.GeometryType.ICOSAHEDRON:
             # those are coordinates on the unit sphere: hence norm should be 1
             norm = data_alloc.zero_field(
                 grid_geometry.grid, dimension, dtype=x_field.dtype, allocator=backend
             )
             vector_ops.norm2_on_vertices(x_field, z_field, y_field, out=norm, offset_provider={})
             assert test_utils.dallclose(norm.asnumpy(), 1.0)
-        case base.GeometryType.TORUS:
+        case icon_grid.GeometryType.TORUS:
             # on a torus coordinates should be within the domain
             assert all(x_field.asnumpy() >= 0.0)
-            assert all(x_field.asnumpy() <= grid_geometry.grid.global_properties.domain_length)
+            assert all(x_field.asnumpy() <= grid_geometry.grid.grid_params.domain_length)
             assert all(y_field.asnumpy() >= 0.0)
-            assert all(y_field.asnumpy() <= grid_geometry.grid.global_properties.domain_height)
+            assert all(y_field.asnumpy() <= grid_geometry.grid.grid_params.domain_height)
             assert all(z_field.asnumpy() == 0.0)
 
 
@@ -215,12 +208,12 @@ def test_distributed_geometry_mean_fields(
     geometry_from_savepoint: geometry.GridGeometry,
     attr_name: str,
 ) -> None:
-    if experiment.grid.params.limited_area:
+    if experiment.grid.limited_area:
         pytest.xfail("Limited-area grids not yet supported")
 
     parallel_helpers.check_comm_size(process_props)
     parallel_helpers.log_process_properties(process_props)
     parallel_helpers.log_local_field_size(decomposition_info)
-    value_ref = utils.GRID_REFERENCE_VALUES[experiment.name][attr_name]
-    value = geometry_from_savepoint.get(attr_name)
+    value_ref = utils.GRID_REFERENCE_VALUES[experiment.grid.name][attr_name]
+    value = geometry_from_savepoint.get_scalar(attr_name)
     assert value == pytest.approx(value_ref)

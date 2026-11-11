@@ -11,15 +11,13 @@ import gt4py.next as gtx
 
 
 KDim = gtx.Dimension("K", kind=gtx.DimensionKind.VERTICAL)
-KHalfDim = gtx.Dimension("KHalf", kind=gtx.DimensionKind.VERTICAL)
+KHalfDim = gtx.flip_staggered(KDim)
 EdgeDim = gtx.Dimension("Edge")
 CellDim = gtx.Dimension("Cell")
 VertexDim = gtx.Dimension("Vertex")
 IDim = gtx.Dimension("IDim", kind=gtx.DimensionKind.HORIZONTAL)
 JDim = gtx.Dimension("JDim", kind=gtx.DimensionKind.HORIZONTAL)
 Kolor = gtx.Dimension("Kolor", kind=gtx.DimensionKind.HORIZONTAL)
-MAIN_HORIZONTAL_DIMENSIONS = {"CellDim": CellDim, "EdgeDim": EdgeDim, "VertexDim": VertexDim}
-LsqCDim = gtx.Dimension("LsqC", gtx.DimensionKind.LOCAL)
 LsqUnkDim = gtx.Dimension("LsqUnk", gtx.DimensionKind.LOCAL)
 E2CDim = gtx.Dimension("E2C", gtx.DimensionKind.LOCAL)
 E2VDim = gtx.Dimension("E2V", gtx.DimensionKind.LOCAL)
@@ -52,7 +50,6 @@ V2E2V = gtx.FieldOffset("V2E2V", source=VertexDim, target=(VertexDim, V2E2VDim))
 V2E2C2VDim = gtx.Dimension("V2E2C2V", gtx.DimensionKind.LOCAL)
 V2E2C2V = gtx.FieldOffset("V2E2C2V", source=VertexDim, target=(VertexDim, V2E2C2VDim))
 Koff = gtx.FieldOffset("Koff", source=KDim, target=(KDim,))
-KHalfOff = gtx.FieldOffset("KHalfOff", source=KHalfDim, target=(KHalfDim,))
 
 
 _STRUCTURED_BACKEND_DIMS: frozenset[str] = frozenset({"IDim", "JDim", "Kolor"})

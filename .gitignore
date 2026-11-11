@@ -12,6 +12,7 @@ testdata
 simple_mesh*.nc
 /prof
 .profile
+pyrightconfig.json
 
 ### Sphinx ###
 **/docs/_source/*.rst
@@ -74,6 +75,7 @@ coverage.xml
 *.cover
 .hypothesis/
 .pytest_cache/
+snapshot_report.html
 
 # type checkers
 .mypy_cache/
@@ -168,3 +170,4 @@ slurm_*
 .gt_cache*
 slurm/*
 icon_structured_benchmark/*
+pyrightconfig.json

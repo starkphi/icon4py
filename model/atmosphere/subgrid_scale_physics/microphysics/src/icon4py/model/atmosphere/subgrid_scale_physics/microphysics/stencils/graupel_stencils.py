@@ -230,7 +230,7 @@ def _icon_graupel_scan(  # noqa: PLR0912, PLR0915
         PhysicsConstants.lh_sublimate
         if use_constant_latent_heat
         else PhysicsConstants.lh_sublimate
-        + (MicrophysicsConstants.CP_V - PhysicsConstants.cpi)
+        + (MicrophysicsConstants.CP_V - PhysicsConstants.ci_thermo)
         * (temperature - PhysicsConstants.tmelt)
         - PhysicsConstants.rv * temperature
     )
@@ -356,7 +356,7 @@ def _icon_graupel_scan(  # noqa: PLR0912, PLR0915
             * exp(power_law_exponent_for_rain_mean_fall_speed * log(rhoqr))
             * crho1o2
         )
-        # Prevent terminal fall speed of snow from being zero at the surface level
+        # Prevent terminal fall speed of rain from being zero at the surface level
         if is_surface:
             terminal_velocity = maximum(
                 terminal_velocity, MicrophysicsConstants.MINIMUM_RAIN_FALL_SPEED
@@ -377,7 +377,7 @@ def _icon_graupel_scan(  # noqa: PLR0912, PLR0915
             * exp(MicrophysicsConstants.POWER_LAW_EXPONENT_FOR_GRAUPEL_MEAN_FALL_SPEED * log(rhoqg))
             * crho1o2
         )
-        # Prevent terminal fall speed of snow from being zero at the surface level
+        # Prevent terminal fall speed of graupel from being zero at the surface level
         if is_surface:
             terminal_velocity = maximum(
                 terminal_velocity, MicrophysicsConstants.MINIMUM_GRAUPEL_FALL_SPEED
@@ -510,6 +510,7 @@ def _icon_graupel_scan(  # noqa: PLR0912, PLR0915
             cslam = exp(
                 MicrophysicsConstants.CCSLXP * log(MicrophysicsConstants.CCSLAM * n0s / rhoqs)
             )
+
             cslam = minimum(cslam, wpfloat("1.0e15"))
             csdep = wpfloat("4.0") * n0s * chlp
         else:

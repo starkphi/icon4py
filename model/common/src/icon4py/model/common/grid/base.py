@@ -6,7 +6,6 @@
 # Please, refer to the LICENSE file in the root directory.
 # SPDX-License-Identifier: BSD-3-Clause
 import dataclasses
-import enum
 import functools
 import logging
 from collections.abc import Callable, Sequence
@@ -22,17 +21,6 @@ from icon4py.model.common.utils import data_allocation as data_alloc
 
 
 _log = logging.getLogger(__name__)
-
-
-class GeometryType(enum.Enum):
-    """Define geometries of the horizontal domain supported by the ICON grid.
-
-    Values are the same as mo_grid_geometry_info.f90.
-    """
-
-    ICOSAHEDRON = 1
-    TORUS = 2
-    CARTESIAN = 4
 
 
 @dataclasses.dataclass(frozen=True)
@@ -96,18 +84,14 @@ class Grid:
     """
     config: GridConfig
     connectivities: gtx_common.OffsetProvider
-    geometry_type: GeometryType
     start_index: Callable[[h_grid.Domain], gtx.int32]
     end_index: Callable[[h_grid.Domain], gtx.int32]
-
-    def __post_init__(self):
-        # TODO(havogt): replace `Koff[k]` by `KDim + k` syntax and remove the following line.
-        self.connectivities[dims.Koff.value] = dims.KDim
 
     @functools.cached_property
     def size(self) -> dict[gtx.Dimension, int]:
         sizes = {
             dims.KDim: self.config.num_levels,
+            dims.KHalfDim: self.config.num_levels + 1,
             dims.CellDim: self.config.num_cells,
             dims.EdgeDim: self.config.num_edges,
             dims.VertexDim: self.config.num_vertices,
@@ -124,8 +108,6 @@ class Grid:
                             )
                     else:
                         sizes[dim] = size
-            elif isinstance(connectivity, gtx.Dimension):
-                ...
             else:
                 raise TypeError(
                     f"Unsupported connectivity type {type(connectivity)} for offset {offset}."

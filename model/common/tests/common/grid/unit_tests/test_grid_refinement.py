@@ -70,6 +70,7 @@ MCH_OPR_R04B07_EDGE_BOUNDS: dict[h_grid.Zone, tuple[int, int]] = {
     h_grid.Zone.END: (16209, 16209),
     h_grid.Zone.HALO: (16209, 16209),
     h_grid.Zone.HALO_LEVEL_2: (16209, 16209),
+    h_grid.Zone.HALO_LEVEL_3: (16209, 16209),
 }
 MCH_OPR_R04B07_VERTEX_BOUNDS: dict[h_grid.Zone, tuple[int, int]] = {
     h_grid.Zone.LATERAL_BOUNDARY: (0, 318),
@@ -113,6 +114,7 @@ MCH_CH_R04B09_EDGE_BOUNDS: dict[h_grid.Zone, tuple[int, int]] = {
     h_grid.Zone.END: (31558, 31558),
     h_grid.Zone.HALO: (31558, 31558),
     h_grid.Zone.HALO_LEVEL_2: (31558, 31558),
+    h_grid.Zone.HALO_LEVEL_3: (31558, 31558),
 }
 MCH_CH_R04B09_VERTEX_BOUNDS: dict[h_grid.Zone, tuple[int, int]] = {
     h_grid.Zone.LATERAL_BOUNDARY: (0, 428),
@@ -162,15 +164,15 @@ def test_compute_domain_bounds_for_limited_area_grid(
 
     for d, v in start_index.items():
         expected_value = expected.get(d.zone, _FALLBACK_FAIL)[0]
-        assert (
-            v == expected_value
-        ), f"Expected start index {expected_value} for domain = {d} , but got {v}"
+        assert v == expected_value, (
+            f"Expected start index {expected_value} for domain = {d} , but got {v}"
+        )
 
     for d, v in end_index.items():
         expected_value = expected.get(d.zone, _FALLBACK_FAIL)[1]
-        assert (
-            v == expected_value
-        ), f"Expected end index {expected_value} for domain = {d} , but got {v}"
+        assert v == expected_value, (
+            f"Expected end index {expected_value} for domain = {d} , but got {v}"
+        )
 
 
 @pytest.mark.parametrize("dim", dims.horizontal_dims())
@@ -179,7 +181,7 @@ def test_compute_domain_bounds_for_global_grid(
     dim: gtx.Dimension,
     cpu_allocator: gtx_typing.Allocator,
 ) -> None:
-    if grid_description.params.limited_area:
+    if grid_description.limited_area:
         pytest.skip("This test is not for limited area grids")
 
     grid_manager = grid_utils.get_grid_manager_from_identifier(
@@ -194,9 +196,9 @@ def test_compute_domain_bounds_for_global_grid(
     for k, v in start_index.items():
         assert isinstance(v, gtx.int32)
         if k.zone.is_halo() or k.zone is h_grid.Zone.END:
-            assert (
-                v == grid.size[dim]
-            ), f"Expected start index '{grid.size[dim]}' for '{dim}' in zone '{k.zone}', but got '{v}'"
+            assert v == grid.size[dim], (
+                f"Expected start index '{grid.size[dim]}' for '{dim}' in zone '{k.zone}', but got '{v}'"
+            )
         else:
             assert v == 0, f"Expected start index '0' for {dim} in {k.zone}, but got '{v}'"
 
@@ -205,6 +207,6 @@ def test_compute_domain_bounds_for_global_grid(
         if k.zone.is_lateral_boundary() or k.zone.is_nudging():
             assert v == 0, f"Expected end index '0' for '{dim}' in zone '{k.zone}', but got '{v}'"
         else:
-            assert (
-                v == grid.size[k.dim]
-            ), f"Expected end index '{grid.size[k.dim]}' for {dim} in {k.zone}, but got '{v}'"
+            assert v == grid.size[k.dim], (
+                f"Expected end index '{grid.size[k.dim]}' for {dim} in {k.zone}, but got '{v}'"
+            )

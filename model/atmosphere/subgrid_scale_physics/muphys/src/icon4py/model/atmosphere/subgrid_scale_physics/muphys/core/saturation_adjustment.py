@@ -18,6 +18,7 @@ from icon4py.model.atmosphere.subgrid_scale_physics.muphys.core.thermo import (
     _qsat_rho,
 )
 from icon4py.model.common import dimension as dims, field_type_aliases as fa, type_alias as ta
+from icon4py.model.common.type_alias import wpfloat
 
 
 @gtx.field_operator
@@ -44,7 +45,7 @@ def _saturation_adjustment(
     qti = q_in.s + q_in.i + q_in.g
     qt = q_in.v + q_in.c + q_in.r + qti
     cvc = (
-        ThermodynamicConsts.cvd * (1.0 - qt)
+        ThermodynamicConsts.cvd * (wpfloat(1.0) - qt)
         + ThermodynamicConsts.clw * q_in.r
         + GraupelConsts.ci * qti
     )
@@ -68,14 +69,14 @@ def _saturation_adjustment(
     # Is it possible to unify the where for all three outputs??
     mask = q_in.v + q_in.c <= qx_hold
     te = where(mask, Tx_hold, Tx)
-    qce = where(mask, 0.0, maximum(q_in.v + q_in.c - qx, 0.0))
+    qce = where(mask, wpfloat(0.0), maximum(q_in.v + q_in.c - qx, wpfloat(0.0)))
     qve = where(mask, q_in.v + q_in.c, qx)
 
     return te, qve, qce
 
 
 @gtx.program(grid_type=gtx.GridType.UNSTRUCTURED)
-def saturation_adjustment(
+def saturation_adjustment(  # noqa: PLR0917 [too-many-positional-arguments]
     te: fa.CellKField[ta.wpfloat],  # Temperature
     rho: fa.CellKField[ta.wpfloat],  # Density containing dry air and water constituents
     q_in: Q,  # Class with humidity, cloud, rain, snow, ice and graupel water
@@ -88,9 +89,9 @@ def saturation_adjustment(
     vertical_end: gtx.int32,
 ) -> None:
     _saturation_adjustment(
-        te,
-        rho,
-        q_in,
+        te=te,
+        rho=rho,
+        q_in=q_in,
         out=(te_out, qve_out, qce_out),
         domain={
             dims.CellDim: (horizontal_start, horizontal_end),

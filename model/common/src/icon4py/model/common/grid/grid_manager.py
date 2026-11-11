@@ -9,13 +9,13 @@ import functools
 import logging
 import pathlib
 from types import ModuleType
-from typing import Literal, TypeAlias
+from typing import Literal
 
 import gt4py.next as gtx
 import gt4py.next.typing as gtx_typing
 import numpy as np
 
-from icon4py.model.common import dimension as dims, type_alias as ta
+from icon4py.model.common import dimension as dims
 from icon4py.model.common.decomposition import (
     decomposer as decomp,
     definitions as decomposition,
@@ -34,7 +34,6 @@ from icon4py.model.common.utils import data_allocation as data_alloc
 
 _log = logging.getLogger(__name__)
 _single_node_decomposer = decomp.SingleNodeDecomposer()
-_single_process_props = decomposition.SingleNodeProcessProperties()
 _fortran_to_python_transformer = gridfile.ToZeroBasedIndexTransformation()
 
 
@@ -42,11 +41,9 @@ class IconGridError(RuntimeError):
     pass
 
 
-CoordinateDict: TypeAlias = dict[
-    gtx.Dimension, dict[Literal["lat", "lon", "x", "y", "z"], gtx.Field]
-]
+type CoordinateDict = dict[gtx.Dimension, dict[Literal["lat", "lon", "x", "y", "z"], gtx.Field]]
 # TODO (halungge): use a TypeDict for that
-GeometryDict: TypeAlias = dict[gridfile.GeometryName, gtx.Field]
+type GeometryDict = dict[gridfile.GeometryName, gtx.Field]
 
 
 class GridManager:
@@ -103,8 +100,8 @@ class GridManager:
         self,
         allocator: gtx_typing.Allocator | None,
         keep_skip_values: bool,
+        process_props: decomposition.ProcessProperties,
         decomposer: decomp.Decomposer = _single_node_decomposer,
-        process_props: decomposition.ProcessProperties = _single_process_props,
     ) -> None:
         if not process_props.is_single_rank() and isinstance(
             decomposer, decomp.SingleNodeDecomposer
@@ -115,9 +112,9 @@ class GridManager:
             self.open()
 
         if geometry_type := self._reader.try_attribute(gridfile.MPIMPropertyName.GEOMETRY):
-            geometry_type = base.GeometryType(geometry_type)
+            geometry_type = icon.GeometryType(geometry_type)
         else:
-            geometry_type = base.GeometryType.ICOSAHEDRON
+            geometry_type = icon.GeometryType.ICOSAHEDRON
 
         self._construct_decomposed_grid(
             allocator=allocator,
@@ -134,7 +131,7 @@ class GridManager:
     def _read_coordinates(
         self,
         allocator: gtx_typing.Allocator,
-        geometry_type: base.GeometryType,
+        geometry_type: icon.GeometryType,
     ) -> CoordinateDict:
         my_cell_indices = self._decomposition_info.global_index(dims.CellDim)
         my_edge_indices = self._decomposition_info.global_index(dims.EdgeDim)
@@ -144,17 +141,17 @@ class GridManager:
                 "lat": gtx.as_field(
                     (dims.CellDim,),
                     self._reader.variable(
-                        gridfile.CoordinateName.CELL_LATITUDE, indices=my_cell_indices
+                        gridfile.CoordinateName.CELL_LATITUDE,
+                        indices=my_cell_indices,
                     ),
-                    dtype=ta.wpfloat,
                     allocator=allocator,
                 ),
                 "lon": gtx.as_field(
                     (dims.CellDim,),
                     self._reader.variable(
-                        gridfile.CoordinateName.CELL_LONGITUDE, indices=my_cell_indices
+                        gridfile.CoordinateName.CELL_LONGITUDE,
+                        indices=my_cell_indices,
                     ),
-                    dtype=ta.wpfloat,
                     allocator=allocator,
                 ),
             },
@@ -162,17 +159,17 @@ class GridManager:
                 "lat": gtx.as_field(
                     (dims.EdgeDim,),
                     self._reader.variable(
-                        gridfile.CoordinateName.EDGE_LATITUDE, indices=my_edge_indices
+                        gridfile.CoordinateName.EDGE_LATITUDE,
+                        indices=my_edge_indices,
                     ),
-                    dtype=ta.wpfloat,
                     allocator=allocator,
                 ),
                 "lon": gtx.as_field(
                     (dims.EdgeDim,),
                     self._reader.variable(
-                        gridfile.CoordinateName.EDGE_LONGITUDE, indices=my_edge_indices
+                        gridfile.CoordinateName.EDGE_LONGITUDE,
+                        indices=my_edge_indices,
                     ),
-                    dtype=ta.wpfloat,
                     allocator=allocator,
                 ),
             },
@@ -180,75 +177,66 @@ class GridManager:
                 "lat": gtx.as_field(
                     (dims.VertexDim,),
                     self._reader.variable(
-                        gridfile.CoordinateName.VERTEX_LATITUDE, indices=my_vertex_indices
+                        gridfile.CoordinateName.VERTEX_LATITUDE,
+                        indices=my_vertex_indices,
                     ),
                     allocator=allocator,
-                    dtype=ta.wpfloat,
                 ),
                 "lon": gtx.as_field(
                     (dims.VertexDim,),
                     self._reader.variable(
-                        gridfile.CoordinateName.VERTEX_LONGITUDE, indices=my_vertex_indices
+                        gridfile.CoordinateName.VERTEX_LONGITUDE,
+                        indices=my_vertex_indices,
                     ),
                     allocator=allocator,
-                    dtype=ta.wpfloat,
                 ),
             },
         }
 
-        if geometry_type in (base.GeometryType.TORUS, base.GeometryType.CARTESIAN):
+        if geometry_type in (icon.GeometryType.TORUS, icon.GeometryType.CARTESIAN) | icon.GeometryType.CARTESIAN:
             coordinates[dims.CellDim]["x"] = gtx.as_field(
                 (dims.CellDim,),
                 self._reader.variable(gridfile.CoordinateName.CELL_X, indices=my_cell_indices),
-                dtype=ta.wpfloat,
                 allocator=allocator,
             )
             coordinates[dims.CellDim]["y"] = gtx.as_field(
                 (dims.CellDim,),
                 self._reader.variable(gridfile.CoordinateName.CELL_Y, indices=my_cell_indices),
-                dtype=ta.wpfloat,
                 allocator=allocator,
             )
             coordinates[dims.CellDim]["z"] = gtx.as_field(
                 (dims.CellDim,),
                 self._reader.variable(gridfile.CoordinateName.CELL_Z, indices=my_cell_indices),
-                dtype=ta.wpfloat,
                 allocator=allocator,
             )
             coordinates[dims.EdgeDim]["x"] = gtx.as_field(
                 (dims.EdgeDim,),
                 self._reader.variable(gridfile.CoordinateName.EDGE_X, indices=my_edge_indices),
-                dtype=ta.wpfloat,
                 allocator=allocator,
             )
             coordinates[dims.EdgeDim]["y"] = gtx.as_field(
                 (dims.EdgeDim,),
                 self._reader.variable(gridfile.CoordinateName.EDGE_Y, indices=my_edge_indices),
-                dtype=ta.wpfloat,
                 allocator=allocator,
             )
             coordinates[dims.EdgeDim]["z"] = gtx.as_field(
                 (dims.EdgeDim,),
                 self._reader.variable(gridfile.CoordinateName.EDGE_Z, indices=my_edge_indices),
-                dtype=ta.wpfloat,
                 allocator=allocator,
             )
             coordinates[dims.VertexDim]["x"] = gtx.as_field(
                 (dims.VertexDim,),
                 self._reader.variable(gridfile.CoordinateName.VERTEX_X, indices=my_vertex_indices),
-                dtype=ta.wpfloat,
                 allocator=allocator,
             )
             coordinates[dims.VertexDim]["y"] = gtx.as_field(
                 (dims.VertexDim,),
                 self._reader.variable(gridfile.CoordinateName.VERTEX_Y, indices=my_vertex_indices),
-                dtype=ta.wpfloat,
                 allocator=allocator,
             )
             coordinates[dims.VertexDim]["z"] = gtx.as_field(
                 (dims.VertexDim,),
                 self._reader.variable(gridfile.CoordinateName.VERTEX_Z, indices=my_vertex_indices),
-                dtype=ta.wpfloat,
                 allocator=allocator,
             )
 
@@ -370,6 +358,11 @@ class GridManager:
         return refinement_control_fields
 
     @property
+    def file_path(self) -> str:
+        """Path of the ICON grid file this manager reads from."""
+        return self._file_name
+
+    @property
     def grid(self) -> icon.IconGrid:
         return self._grid
 
@@ -389,7 +382,7 @@ class GridManager:
         self,
         allocator: gtx_typing.Allocator | None,
         keep_skip_values: bool,
-        geometry_type: base.GeometryType,
+        geometry_type: icon.GeometryType,
         decomposer: decomp.Decomposer,
         process_props: decomposition.ProcessProperties,
     ) -> None:
@@ -407,7 +400,7 @@ class GridManager:
             self._reader.variable(gridfile.GridRefinementName.CONTROL_CELLS)
         )
         global_size = self._read_full_grid_size()
-        global_params = self._construct_global_params(allocator, global_size, geometry_type)
+        global_params = self._construct_grid_params(geometry_type)
         limited_area = refinement.is_limited_area_grid(cell_refinement)
 
         if limited_area and not process_props.is_single_rank():
@@ -462,13 +455,13 @@ class GridManager:
         )
 
         self._grid = icon.icon_grid(
-            self._reader.attribute(gridfile.MandatoryPropertyName.GRID_UUID),
+            id_=self._reader.attribute(gridfile.MandatoryPropertyName.GRID_UUID),
             allocator=allocator,
             config=grid_config,
             neighbor_tables=neighbor_tables,
             start_index=start_index,
             end_index=end_index,
-            global_properties=global_params,
+            grid_params=global_params,
             refinement_control=refinement_fields,
         )
 
@@ -487,28 +480,28 @@ class GridManager:
         else:
             return neighbor_tables_global
 
-    def _construct_global_params(
-        self,
-        allocator: gtx_typing.Allocator,
-        global_size: base.HorizontalGridSize,
-        geometry_type: base.GeometryType,
-    ):
+    def _construct_grid_params(self, geometry_type: icon.GeometryType):
         grid_root = self._reader.attribute(gridfile.MandatoryPropertyName.ROOT)
         grid_level = self._reader.attribute(gridfile.MandatoryPropertyName.LEVEL)
         sphere_radius = self._reader.try_attribute(gridfile.MPIMPropertyName.SPHERE_RADIUS)
         domain_length = self._reader.try_attribute(gridfile.MPIMPropertyName.DOMAIN_LENGTH)
         domain_height = self._reader.try_attribute(gridfile.MPIMPropertyName.DOMAIN_HEIGHT)
 
-        return icon.GlobalGridParams(
-            grid_shape=icon.GridShape(
-                geometry_type=geometry_type,
-                subdivision=icon.GridSubdivision(root=grid_root, level=grid_level),
-            ),
-            radius=sphere_radius,
-            domain_length=domain_length,
-            domain_height=domain_height,
-            num_cells=global_size.num_cells,
-        )
+        match geometry_type:
+            case icon.GeometryType.ICOSAHEDRON:
+                return icon.GridParams(
+                    icon.IcosahedronParams(
+                        subdivision=icon.GridSubdivision(root=grid_root, level=grid_level),
+                        radius=sphere_radius,
+                    ),
+                )
+            case icon.GeometryType.TORUS:
+                return icon.GridParams(
+                    icon.TorusParams(
+                        domain_length=domain_length,
+                        domain_height=domain_height,
+                    ),
+                )
 
     def _read_full_grid_size(self) -> base.HorizontalGridSize:
         """

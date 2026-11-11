@@ -16,7 +16,7 @@ from icon4py.model.atmosphere.diffusion import diffusion as diffusion_, diffusio
 from icon4py.model.common import dimension as dims, type_alias as ta
 from icon4py.model.common.decomposition import definitions as decomp_defs
 from icon4py.model.common.grid import icon, vertical as v_grid
-from icon4py.model.testing import definitions, parallel_helpers, serialbox
+from icon4py.model.testing import definitions as test_defs, parallel_helpers, serialbox
 
 from .. import utils
 from ..fixtures import *  # noqa: F403
@@ -25,28 +25,27 @@ from ..fixtures import *  # noqa: F403
 _log = logging.getLogger(__file__)
 
 
+@pytest.mark.datatest
 @pytest.mark.mpi
 @pytest.mark.uses_concat_where
 @pytest.mark.parametrize(
-    "experiment, step_date_init, step_date_exit",
+    "experiment_description, step_date_init, step_date_exit",
     [
         (
-            definitions.Experiments.MCH_CH_R04B09,
+            test_defs.Experiments.MCH_CH_R04B09,
             "2021-06-20T12:00:10.000",
             "2021-06-20T12:00:10.000",
         ),
-        (definitions.Experiments.EXCLAIM_APE, "2000-01-01T00:00:02.000", "2000-01-01T00:00:02.000"),
-        (definitions.Experiments.JW, "2008-09-01T00:05:00.000", "2008-09-01T00:05:00.000"),
+        (test_defs.Experiments.EXCLAIM_APE, "2000-01-01T00:00:02.000", "2000-01-01T00:00:02.000"),
+        (test_defs.Experiments.JW, "2008-09-01T00:05:00.000", "2008-09-01T00:05:00.000"),
     ],
 )
-@pytest.mark.parametrize("ndyn_substeps", [2])
 @pytest.mark.parametrize("process_props", [True], indirect=True)
-def test_parallel_diffusion(
-    experiment: definitions.Experiment,
+def test_parallel_diffusion(  # noqa: PLR0917 [too-many-positional-arguments]
+    experiment: test_defs.Experiment,
     step_date_init: str,
     step_date_exit: str,
     linit: bool,
-    ndyn_substeps: int,
     process_props: decomp_defs.ProcessProperties,
     decomposition_info: decomp_defs.DecompositionInfo,
     icon_grid: icon.IconGrid,
@@ -55,17 +54,13 @@ def test_parallel_diffusion(
     grid_savepoint: serialbox.IconGridSavepoint,
     metric_state: diffusion_states.DiffusionMetricState,
     interpolation_state: diffusion_states.DiffusionInterpolationState,
-    lowest_layer_thickness: ta.wpfloat,
-    model_top_height: ta.wpfloat,
-    stretch_factor: ta.wpfloat,
-    damping_height: ta.wpfloat,
     caplog: Any,
     backend: gtx_typing.Backend,
 ) -> None:
     caplog.set_level("INFO")
     parallel_helpers.check_comm_size(process_props)
     _log.info(
-        f"rank={process_props.rank}/{process_props.comm_size}: initializing diffusion for experiment '{definitions.Experiments.MCH_CH_R04B09}'"
+        f"rank={process_props.rank}/{process_props.comm_size}: initializing diffusion for experiment '{test_defs.Experiments.MCH_CH_R04B09}'"
     )
     _log.info(
         f"local cells = {decomposition_info.global_index(dims.CellDim, decomp_defs.DecompositionInfo.EntryType.ALL).shape} "
@@ -79,23 +74,18 @@ def test_parallel_diffusion(
     _log.info(
         f"rank={process_props.rank}/{process_props.comm_size}: using local grid with {icon_grid.num_cells} Cells, {icon_grid.num_edges} Edges, {icon_grid.num_vertices} Vertices"
     )
-    config = definitions.construct_diffusion_config(experiment, ndyn_substeps=ndyn_substeps)
-    dtime = savepoint_diffusion_init.get_metadata("dtime").get("dtime")
+    config = experiment.config.diffusion
+    dtime = savepoint_diffusion_init.dtime()
     _log.info(
         f"rank={process_props.rank}/{process_props.comm_size}:  setup: using {process_props.comm_name} with {process_props.comm_size} nodes"
     )
-    vertical_config = v_grid.VerticalGridConfig(
-        icon_grid.num_levels,
-        lowest_layer_thickness=lowest_layer_thickness,
-        model_top_height=model_top_height,
-        stretch_factor=stretch_factor,
-        rayleigh_damping_height=damping_height,
-    )
+    vertical_config = experiment.config.vertical_grid
 
     diffusion_params = diffusion_.DiffusionParams(config)
     cell_geometry = grid_savepoint.construct_cell_geometry()
     edge_geometry = grid_savepoint.construct_edge_geometry()
     exchange = decomp_defs.create_exchange(process_props, decomposition_info)
+    assert experiment.config.interpolation.max_nudging_coefficient is not None
     diffusion = diffusion_.Diffusion(
         grid=icon_grid,
         config=config,
@@ -111,6 +101,8 @@ def test_parallel_diffusion(
         cell_params=cell_geometry,
         exchange=exchange,
         backend=backend,
+        ndyn_substeps=experiment.config.driver.ndyn_substeps,
+        max_nudging_coefficient=experiment.config.interpolation.max_nudging_coefficient,
     )
 
     _log.info(f"rank={process_props.rank}/{process_props.comm_size}: diffusion initialized ")

@@ -1,4 +1,4 @@
-#!/usr/bin/env -S uv run -q --frozen --isolated --python 3.12 --group scripts python3
+#!/usr/bin/env -S uv run -q --frozen --isolated --python 3.12 --only-group scripts python3
 #
 # ICON4Py - ICON inspired code in Python and GT4Py
 #
@@ -16,12 +16,12 @@ import json
 import logging
 import pathlib
 import sys
-from typing import Any, TypeAlias
+from typing import Any
 
 import typer
 
 
-VariantDescriptor: TypeAlias = tuple[str, dict[str, Any]]
+type VariantDescriptor = tuple[str, dict[str, Any]]
 
 cli = typer.Typer()
 
@@ -35,7 +35,7 @@ output_filename = "bench_blueline_stencil_compute"
 
 # the default 'file_prefix' assumes that the json files are in the script folder
 file_prefix = pathlib.Path(__file__).parent
-openacc_input = file_prefix / "../data/bencher=mch_icon-ch1_medium_stencils=0.604598=ACC.json"
+openacc_input = file_prefix / "../data/bencher=mch_icon-ch1_medium_stencils=0.939946=OPENACC.json"
 gt4py_input = {}
 gt4py_metrics = ["compute"]  # here we can add other metrics, e.g. 'total'
 gt4py_unmatched_ncalls_threshold = (
@@ -46,57 +46,27 @@ gt4py_unmatched_ncalls_threshold = (
 # besides the gt4py stencil name, a dictionary of static arguments that should be
 # matched in the gt4py timer report. If the value is `None`, we do not check the
 # static arguments and assume the stencil name is the same.
+# The velocity advection kernels have no entry: 'compute_velocity_advection_in_predictor_step'
+# and 'compute_velocity_advection_in_corrector_step' each aggregate several openacc kernels,
+# which this one-icon4py-variant-per-fortran-kernel mapping cannot express.
 fortran_to_icon4py: dict[str, VariantDescriptor | None] = {
-    "apply_diffusion_to_theta_and_exner": None,
-    "apply_diffusion_to_vn": None,
-    "apply_diffusion_to_w_and_compute_horizontal_gradients_for_turbulence": None,
     "apply_divergence_damping_and_update_vn": None,
     "boundary_halo_cleanup": None,
     "compute_dwdz_and_boundary_update_rho_theta_w": None,
-    "calculate_diagnostic_quantities_for_turbulence": None,
-    "calculate_enhanced_diffusion_coefficients_for_grid_point_cold_pools": None,
     "calculate_nabla2_and_smag_coefficients_for_vn": None,
-    "compute_advection_in_horizontal_momentum_equation": (
-        "compute_advection_in_horizontal_momentum",
-        {},
-    ),
-    "compute_advection_in_vertical_momentum_equation": (
-        "compute_advection_in_corrector_vertical_momentum",
-        {},
-    ),
     "compute_averaged_vn_and_fluxes_and_prepare_tracer_advection": (
         "compute_averaged_vn_and_fluxes",
         {
             "at_first_substep": False,
-            "prepare_advection": True,
+            "prepare_fluxes_for_advection": True,
         },
     ),
     "compute_averaged_vn_and_fluxes_and_prepare_tracer_advection_first": (
         "compute_averaged_vn_and_fluxes",
         {
             "at_first_substep": True,
-            "prepare_advection": True,
+            "prepare_fluxes_for_advection": True,
         },
-    ),
-    "compute_advection_in_predictor_vertical_momentum": (
-        "compute_advection_in_predictor_vertical_momentum",
-        {
-            "skip_compute_predictor_vertical_advection": False,
-        },
-    ),
-    "compute_advection_in_predictor_vertical_momentum_skip": (
-        "compute_advection_in_predictor_vertical_momentum",
-        {
-            "skip_compute_predictor_vertical_advection": True,
-        },
-    ),
-    "compute_diagnostics_from_normal_wind": (
-        "compute_diagnostics_from_normal_wind",
-        {"skip_compute_predictor_vertical_advection": False},
-    ),
-    "compute_diagnostics_from_normal_wind_skip": (
-        "compute_diagnostics_from_normal_wind",
-        {"skip_compute_predictor_vertical_advection": True},
     ),
     "compute_horizontal_velocity_quantities_and_fluxes": None,
     "compute_perturbed_quantities_and_interpolation": None,
@@ -180,7 +150,7 @@ def load_openacc_log(filename: pathlib.Path) -> dict:
 
 
 def load_gt4py_timers(filename: pathlib.Path, metric: str) -> tuple[dict, dict]:
-    import numpy as np
+    import numpy as np  # noqa: PLC0415 [import-outside-top-level]
 
     log.info(f"Loading icon4py data from {filename}")
     with filename.open("r") as f:
@@ -219,10 +189,11 @@ def load_gt4py_timers(filename: pathlib.Path, metric: str) -> tuple[dict, dict]:
                 data[fortran_name] = metric_data
             else:
                 log.warning(f"Unmatched icon4py meas for {stencil}")
+                if len(metric_data) < gt4py_unmatched_ncalls_threshold:
+                    continue
                 if stencil in unmatched_data:
                     raise NotImplementedError("Cannot handle stencil variant in unmatched data.")
-                if len(metric_data) >= gt4py_unmatched_ncalls_threshold:
-                    unmatched_data[stencil] = metric_data
+                unmatched_data[stencil] = metric_data
 
     assert "update_mass_flux_weighted" in data
     update_mass_flux_weighted_original = data.pop("update_mass_flux_weighted")
@@ -240,7 +211,7 @@ def load_gt4py_timers(filename: pathlib.Path, metric: str) -> tuple[dict, dict]:
             update_mass_flux_weighted_original[
                 ::5
             ],  # take ONLY every fifth measurement which corresponds to the first substep of the 5 substeps per ICON timestep
-            unmatched_data.pop("init_cell_kdim_field_with_zero_wp"),
+            unmatched_data.pop("set_constant_on_half_levels_on_cells"),
             strict=True,
         )
     ]
@@ -287,8 +258,8 @@ def load_gt4py_timers(filename: pathlib.Path, metric: str) -> tuple[dict, dict]:
 
 @cli.command(help=__doc__)
 def compare_icon4py_openacc():
-    import matplotlib.pyplot as plt
-    import numpy as np
+    import matplotlib.pyplot as plt  # noqa: PLC0415 [import-outside-top-level]
+    import numpy as np  # noqa: PLC0415 [import-outside-top-level]
 
     openacc_meas, openacc_count = load_openacc_log(openacc_input)
 

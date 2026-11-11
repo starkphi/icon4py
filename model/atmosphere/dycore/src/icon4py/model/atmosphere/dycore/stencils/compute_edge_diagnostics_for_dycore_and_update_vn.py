@@ -50,7 +50,7 @@ from icon4py.model.atmosphere.dycore.stencils.compute_vn_on_lateral_boundary imp
 )
 from icon4py.model.common import dimension as dims, field_type_aliases as fa, type_alias as ta
 from icon4py.model.common.constants import PhysicsConstants
-from icon4py.model.common.type_alias import wpfloat
+from icon4py.model.common.type_alias import vpfloat, wpfloat
 
 
 @gtx.field_operator
@@ -77,7 +77,7 @@ def apply_hydrostatic_correction_to_horizontal_gradient_of_exner_pressure(
     # Note: In the original Fortran code `pg_exdist` is implemented as a list,
     # in ICON4Py it's a full field intialized with zeros for points that are not in the list.
     z_gradh_exner_vp = where(
-        pg_exdist != 0.0, z_gradh_exner + z_hydro_corr * pg_exdist, z_gradh_exner
+        pg_exdist != vpfloat(0.0), z_gradh_exner + z_hydro_corr * pg_exdist, z_gradh_exner
     )
     return z_gradh_exner_vp
 
@@ -99,8 +99,8 @@ def _compute_horizontal_pressure_gradient(
 ) -> fa.EdgeKField[ta.wpfloat]:
     # Note: we only support `TAYLOR_HYDRO`
     horizontal_pressure_gradient = apply_on_vertical_level(
-        nflatlev,
-        nflat_gradp,
+        nflatlev=nflatlev,
+        nflat_gradp=nflat_gradp,
         on_flatlevels=_compute_horizontal_gradient_of_exner_pressure_for_flat_coordinates(
             inv_dual_edge_length=inv_dual_edge_length,
             z_exner_ex_pr=temporal_extrapolation_of_perturbed_exner,
@@ -170,6 +170,7 @@ def _compute_rho_theta_pgrad_and_update_vn(
     start_edge_lateral_boundary_level_7: gtx.int32,
     start_edge_nudging_level_2: gtx.int32,
     end_edge_nudging: gtx.int32,
+    end_edge_local: gtx.int32,
     end_edge_halo: gtx.int32,
 ) -> tuple[
     fa.EdgeKField[ta.wpfloat],
@@ -179,8 +180,9 @@ def _compute_rho_theta_pgrad_and_update_vn(
 ]:
     # TODO(havogt): it would be nice if we could shrink the start of the compute domain to `start_edge_lateral_boundary_level_7 <= dims.EdgeDim`,
     # but that would require to put the correct lateral boundary condition where this is consumed.
-    # TODO(havogt): most likely it is possible to remove the `end_edge_halo` bound here (and shrink the compute domain), the corresponding
-    # Fortran code states "Initialize halo edges with zero in order to avoid access of uninitialized array elements".
+    # Note: the zeros outside are required, the Fortran code states "Initialize halo edges with
+    # zero in order to avoid access of uninitialized array elements", therefore this cannot be
+    # expressed as an output domain.
     (rho_at_edges_on_model_levels, theta_v_at_edges_on_model_levels) = concat_where(
         ((start_edge_lateral_boundary_level_7 <= dims.EdgeDim) & (dims.EdgeDim < end_edge_halo)),
         _compute_horizontal_advection_of_rho_and_theta(
@@ -192,7 +194,7 @@ def _compute_rho_theta_pgrad_and_update_vn(
             dual_normal_cell_1=dual_normal_cell_x,
             primal_normal_cell_2=primal_normal_cell_y,
             dual_normal_cell_2=dual_normal_cell_y,
-            p_dthalf=wpfloat("0.5") * dtime,
+            p_dthalf=wpfloat(0.5) * dtime,
             rho_ref_me=reference_rho_at_edges_on_model_levels,
             theta_ref_me=reference_theta_at_edges_on_model_levels,
             perturbed_rho_at_cells_on_model_levels=perturbed_rho_at_cells_on_model_levels,
@@ -201,14 +203,11 @@ def _compute_rho_theta_pgrad_and_update_vn(
             geofac_grg_y=geofac_grg_y,
         ),
         (
-            broadcast(wpfloat("0.0"), (dims.EdgeDim, dims.KDim)),
-            broadcast(wpfloat("0.0"), (dims.EdgeDim, dims.KDim)),
+            broadcast(wpfloat(0.0), (dims.EdgeDim, dims.KDim)),
+            broadcast(wpfloat(0.0), (dims.EdgeDim, dims.KDim)),
         ),
     )
 
-    # Note: we overcompute `horizontal_pressure_gradient`, which is only needed
-    # from start_edge_nudging_level_2 <= dims.EdgeDim < end_edge_local
-    # TODO(havogt): with multiple output domains this should be fixed.
     horizontal_pressure_gradient = _compute_horizontal_pressure_gradient(
         temporal_extrapolation_of_perturbed_exner=temporal_extrapolation_of_perturbed_exner,
         ddz_of_temporal_extrapolation_of_perturbed_exner_on_model_levels=ddz_of_temporal_extrapolation_of_perturbed_exner_on_model_levels,
@@ -224,9 +223,6 @@ def _compute_rho_theta_pgrad_and_update_vn(
         nflat_gradp=nflat_gradp,
     )
 
-    # Note: we overcompute `next_vn`, which is only needed
-    # up to dims.EdgeDim < end_edge_local
-    # TODO(havogt): with multiple output domains this should be fixed.
     next_vn = concat_where(
         start_edge_nudging_level_2 <= dims.EdgeDim,
         _add_temporal_tendencies_to_vn(
@@ -241,7 +237,6 @@ def _compute_rho_theta_pgrad_and_update_vn(
     )
 
     if is_iau_active:
-        # Note: we overcompute `next_vn`, see above.
         next_vn = concat_where(
             start_edge_nudging_level_2 <= dims.EdgeDim,
             _add_analysis_increments_to_vn(
@@ -297,10 +292,10 @@ def _apply_divergence_damping_and_update_vn(
     apply_2nd_order_divergence_damping: bool,
     apply_4th_order_divergence_damping: bool,
     divdamp_order: gtx.int32,
-    mean_cell_area: float,
-    second_order_divdamp_factor: float,
-    max_nudging_coefficient: float,
-    dbl_eps: float,
+    mean_cell_area: wpfloat,
+    second_order_divdamp_factor: wpfloat,
+    max_nudging_coefficient: wpfloat,
+    wp_eps: wpfloat,
 ) -> fa.EdgeKField[ta.wpfloat]:
     # add dw/dz for divergence damping term. In ICON, this stencil starts from k = kstart_dd3d until k = nlev - 1.
     # Since scaling_factor_for_3d_divdamp is zero when k < kstart_dd3d, it is meaningless to execute computation
@@ -348,7 +343,7 @@ def _apply_divergence_damping_and_update_vn(
                 mean_cell_area=mean_cell_area,
                 second_order_divdamp_factor=second_order_divdamp_factor,
                 max_nudging_coefficient=max_nudging_coefficient,
-                dbl_eps=dbl_eps,
+                wp_eps=wp_eps,
             )
         else:
             next_vn = _apply_4th_order_divergence_damping(
@@ -412,12 +407,13 @@ def compute_rho_theta_pgrad_and_update_vn(
     start_edge_lateral_boundary_level_7: gtx.int32,
     start_edge_nudging_level_2: gtx.int32,
     end_edge_nudging: gtx.int32,
+    end_edge_local: gtx.int32,
     end_edge_halo: gtx.int32,
     horizontal_start: gtx.int32,
     horizontal_end: gtx.int32,
     vertical_start: gtx.int32,
     vertical_end: gtx.int32,
-):
+) -> None:
     """
     Formerly known as fused_solve_nonhydro_stencil_15_to_28_predictor.
 
@@ -515,6 +511,7 @@ def compute_rho_theta_pgrad_and_update_vn(
         start_edge_lateral_boundary_level_7=start_edge_lateral_boundary_level_7,
         start_edge_nudging_level_2=start_edge_nudging_level_2,
         end_edge_nudging=end_edge_nudging,
+        end_edge_local=end_edge_local,
         end_edge_halo=end_edge_halo,
         out=(
             rho_at_edges_on_model_levels,
@@ -522,10 +519,24 @@ def compute_rho_theta_pgrad_and_update_vn(
             horizontal_pressure_gradient,
             next_vn,
         ),
-        domain={
-            dims.EdgeDim: (horizontal_start, horizontal_end),
-            dims.KDim: (vertical_start, vertical_end),
-        },
+        domain=(
+            {
+                dims.EdgeDim: (horizontal_start, horizontal_end),
+                dims.KDim: (vertical_start, vertical_end),
+            },
+            {
+                dims.EdgeDim: (horizontal_start, horizontal_end),
+                dims.KDim: (vertical_start, vertical_end),
+            },
+            {
+                dims.EdgeDim: (start_edge_nudging_level_2, end_edge_local),
+                dims.KDim: (vertical_start, vertical_end),
+            },
+            {
+                dims.EdgeDim: (start_edge_lateral_boundary, end_edge_local),
+                dims.KDim: (vertical_start, vertical_end),
+            },
+        ),
     )
 
 
@@ -557,10 +568,10 @@ def apply_divergence_damping_and_update_vn(
     apply_2nd_order_divergence_damping: bool,
     apply_4th_order_divergence_damping: bool,
     divdamp_order: gtx.int32,
-    mean_cell_area: float,
-    second_order_divdamp_factor: float,
-    max_nudging_coefficient: float,
-    dbl_eps: float,
+    mean_cell_area: wpfloat,
+    second_order_divdamp_factor: wpfloat,
+    max_nudging_coefficient: wpfloat,
+    wp_eps: wpfloat,
     horizontal_start: gtx.int32,
     horizontal_end: gtx.int32,
     vertical_start: gtx.int32,
@@ -604,7 +615,7 @@ def apply_divergence_damping_and_update_vn(
         - mean_cell_area
         - second_order_divdamp_factor
         - max_nudging_coefficient
-        - dbl_eps
+        - wp_eps
 
     Returns:
         - next_vn: normal wind to be updated [m s-1]
@@ -639,7 +650,7 @@ def apply_divergence_damping_and_update_vn(
         mean_cell_area=mean_cell_area,
         second_order_divdamp_factor=second_order_divdamp_factor,
         max_nudging_coefficient=max_nudging_coefficient,
-        dbl_eps=dbl_eps,
+        wp_eps=wp_eps,
         out=next_vn,
         domain={
             dims.EdgeDim: (horizontal_start, horizontal_end),

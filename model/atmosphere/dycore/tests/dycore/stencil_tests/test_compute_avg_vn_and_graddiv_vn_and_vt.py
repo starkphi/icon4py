@@ -5,6 +5,7 @@
 #
 # Please, refer to the LICENSE file in the root directory.
 # SPDX-License-Identifier: BSD-3-Clause
+from collections.abc import Mapping
 from typing import Any
 
 import gt4py.next as gtx
@@ -15,76 +16,68 @@ from icon4py.model.atmosphere.dycore.stencils.compute_avg_vn_and_graddiv_vn_and_
     compute_avg_vn_and_graddiv_vn_and_vt,
 )
 from icon4py.model.common import dimension as dims
-from icon4py.model.common.grid import base, horizontal as h_grid
+from icon4py.model.common.grid import base
 from icon4py.model.common.states import utils as state_utils
 from icon4py.model.common.type_alias import vpfloat, wpfloat
-from icon4py.model.common.utils.data_allocation import random_field, zero_field
-from icon4py.model.testing.stencil_tests import StencilTest
+from icon4py.model.testing import stencil_tests
 
 
 def compute_avg_vn_and_graddiv_vn_and_vt_numpy(
-    connectivities: dict[gtx.Dimension, np.ndarray],
+    connectivities: Mapping[gtx.FieldOffset, np.ndarray],
     e_flx_avg: np.ndarray,
     vn: np.ndarray,
     geofac_grdiv: np.ndarray,
     rbf_vec_coeff_e: np.ndarray,
-    horizontal_start: int,
 ) -> tuple[np.ndarray, ...]:
-    # horizontal_start = 0
-    e2c2eO = connectivities[dims.E2C2EODim]
-    e2c2e = connectivities[dims.E2C2EDim]
+    e2c2eO = connectivities[dims.E2C2EO]
+    e2c2e = connectivities[dims.E2C2E]
     e_flx_avg = np.expand_dims(e_flx_avg, axis=-1)
-    z_vn_avg = np.zeros_like(vn)
-    z_vn_avg[horizontal_start:, :] = np.sum(vn[e2c2eO] * e_flx_avg, axis=1)[horizontal_start:, :]
+    z_vn_avg = np.sum(vn[e2c2eO] * e_flx_avg, axis=1)
     geofac_grdiv = np.expand_dims(geofac_grdiv, axis=-1)
-    z_graddiv_vn = np.zeros_like(vn)
-    z_graddiv_vn[horizontal_start:, :] = np.sum(
+    z_graddiv_vn = np.sum(
         np.where((e2c2eO != -1)[:, :, np.newaxis], vn[e2c2eO] * geofac_grdiv, 0), axis=1
-    )[horizontal_start:, :]
+    )
     rbf_vec_coeff_e = np.expand_dims(rbf_vec_coeff_e, axis=-1)
-    vt = np.zeros_like(z_graddiv_vn)
-    vt[horizontal_start:, :] = np.sum(np.where((e2c2e != -1)[:, :, np.newaxis], vn[e2c2e] * rbf_vec_coeff_e, 0), axis=1)[horizontal_start:, :]
+    vt = np.sum(np.where((e2c2e != -1)[:, :, np.newaxis], vn[e2c2e] * rbf_vec_coeff_e, 0), axis=1)
     return z_vn_avg, z_graddiv_vn, vt
 
 
 @pytest.mark.embedded_remap_error
-class TestComputeAvgVnAndGraddivVnAndVt(StencilTest):
+class TestComputeAvgVnAndGraddivVnAndVt(stencil_tests.StencilTest):
     PROGRAM = compute_avg_vn_and_graddiv_vn_and_vt
     OUTPUTS = ("z_vn_avg", "z_graddiv_vn", "vt")
-    ENABLE_REFERENCE_TRANSLATION_FOR_STRUCTURED_BACKEND = True
 
-    @staticmethod
+    @stencil_tests.static_reference
     def reference(
-        connectivities: dict[gtx.Dimension, np.ndarray],
+        grid: base.Grid,
+        *,
         e_flx_avg: np.ndarray,
         vn: np.ndarray,
         geofac_grdiv: np.ndarray,
         rbf_vec_coeff_e: np.ndarray,
-        horizontal_start: int,
         **kwargs: Any,
     ) -> dict:
+        connectivities = stencil_tests.connectivities_asnumpy(grid)
         z_vn_avg, z_graddiv_vn, vt = compute_avg_vn_and_graddiv_vn_and_vt_numpy(
             connectivities,
             e_flx_avg,
             vn,
             geofac_grdiv,
             rbf_vec_coeff_e,
-            horizontal_start,
         )
         return dict(z_vn_avg=z_vn_avg, z_graddiv_vn=z_graddiv_vn, vt=vt)
 
-    @pytest.fixture
-    def input_data(self, grid: base.Grid) -> dict[str, gtx.Field | state_utils.ScalarType]:
-        e_flx_avg = random_field(grid, dims.EdgeDim, dims.E2C2EODim, dtype=wpfloat)
-        geofac_grdiv = random_field(grid, dims.EdgeDim, dims.E2C2EODim, dtype=wpfloat)
-        rbf_vec_coeff_e = random_field(grid, dims.EdgeDim, dims.E2C2EDim, dtype=wpfloat)
-        vn = random_field(grid, dims.EdgeDim, dims.KDim, dtype=wpfloat)
-        z_vn_avg = zero_field(grid, dims.EdgeDim, dims.KDim, dtype=wpfloat)
-        z_graddiv_vn = zero_field(grid, dims.EdgeDim, dims.KDim, dtype=vpfloat)
-        vt = zero_field(grid, dims.EdgeDim, dims.KDim, dtype=vpfloat)
-        edge_domain = h_grid.domain(dims.EdgeDim)
-        horizontal_start = grid.start_index(edge_domain(h_grid.Zone.LATERAL_BOUNDARY_LEVEL_3))
-        print(f"horizonta_start: ",horizontal_start)
+    @stencil_tests.input_data_fixture
+    def input_data(
+        data_alloc: stencil_tests.DataAllocationWrapper, grid: base.Grid
+    ) -> dict[str, gtx.Field | state_utils.ScalarType]:
+        e_flx_avg = data_alloc.random_field(dims.EdgeDim, dims.E2C2EODim, dtype=wpfloat)
+        geofac_grdiv = data_alloc.random_field(dims.EdgeDim, dims.E2C2EODim, dtype=wpfloat)
+        rbf_vec_coeff_e = data_alloc.random_field(dims.EdgeDim, dims.E2C2EDim, dtype=wpfloat)
+        vn = data_alloc.random_field(dims.EdgeDim, dims.KDim, dtype=wpfloat)
+        z_vn_avg = data_alloc.zero_field(dims.EdgeDim, dims.KDim, dtype=wpfloat)
+        z_graddiv_vn = data_alloc.zero_field(dims.EdgeDim, dims.KDim, dtype=vpfloat)
+        vt = data_alloc.zero_field(dims.EdgeDim, dims.KDim, dtype=vpfloat)
 
         return dict(
             e_flx_avg=e_flx_avg,
@@ -94,7 +87,7 @@ class TestComputeAvgVnAndGraddivVnAndVt(StencilTest):
             z_vn_avg=z_vn_avg,
             z_graddiv_vn=z_graddiv_vn,
             vt=vt,
-            horizontal_start=horizontal_start,
+            horizontal_start=0,
             horizontal_end=gtx.int32(grid.num_edges),
             vertical_start=0,
             vertical_end=gtx.int32(grid.num_levels),

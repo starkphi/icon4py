@@ -1,4 +1,4 @@
-#!/usr/bin/env -S uv run -q --frozen --isolated --python 3.12 --group scripts python3
+#!/usr/bin/env -S uv run -q --frozen --isolated --python 3.12 --only-group scripts python3
 #
 # ICON4Py - ICON inspired code in Python and GT4Py
 #
@@ -16,21 +16,20 @@ import pathlib
 import re
 import subprocess
 import sys
+import tomllib
 from typing import Annotated, Final
 
 import typer
 from helpers import common
 
 
-def _find_versioned_package_dirs() -> list[pathlib.Path]:
-    """Return directories of all pyproject.toml files in the repo that have a
-    ``[tool.bumpversion]`` section, sorted with the repo root last."""
+def _find_package_dirs() -> list[pathlib.Path]:
+    """Return directories containing package pyproject.toml files, with root last."""
     dirs = []
     for pyproject in sorted(common.REPO_ROOT.rglob("pyproject.toml")):
         if ".venv" in pyproject.parts:
             continue
-        if "[tool.bumpversion]" in pyproject.read_text():
-            dirs.append(pyproject.parent)
+        dirs.append(pyproject.parent)
     # Ensure repo root (if present) comes last so sub-packages bump first
     if common.REPO_ROOT in dirs:
         dirs.remove(common.REPO_ROOT)
@@ -41,22 +40,76 @@ def _find_versioned_package_dirs() -> list[pathlib.Path]:
 #: Pattern matching versioned icon4py cross-package dependency constraints, e.g.
 #: ``icon4py-common>=0.0.6``, ``icon4py-common~=0.0.6``, or ``icon4py-tools~=0.0.6``.
 _ICON4PY_DEP_CONSTRAINT_RE: Final = re.compile(
-    r"(icon4py-[\w-]+(?:\[[\w,]+\])?)(~=|>=)([\d]+\.[\d]+\.[\d]+)"
+    r"(icon4py-[\w-]+(?:\[[\w,]+\])?)(~=|>=)([\d]+\.[\d]+\.[\d]+(?:(?:a|b|rc)\d+)?)"
 )
 
 
 cli = typer.Typer(no_args_is_help=True, help=__doc__)
 
 
-def _detect_current_version(pkg_dirs: list[pathlib.Path]) -> str:
-    """Read the current version from the first versioned package found."""
+def _validate_package_versions(pkg_dirs: list[pathlib.Path]) -> str:
+    """Ensure every package can be bumped and has the same current version."""
+    configuration_errors = []
+    versions = {}
     for pkg_dir in pkg_dirs:
         pyproject = pkg_dir / "pyproject.toml"
-        text = pyproject.read_text()
-        m = re.search(r"^# managed by bump-my-version:\nversion = \"([\d.]+)\"", text, re.MULTILINE)
-        if m:
-            return m.group(1)
-    raise RuntimeError("Could not detect current version from any namespace package.")
+        with pyproject.open("rb") as f:
+            config = tomllib.load(f)
+
+        project = config.get("project")
+        bumpversion = config.get("tool", {}).get("bumpversion")
+        if not isinstance(project, dict) or not isinstance(project.get("version"), str):
+            configuration_errors.append(
+                f"'{pyproject.relative_to(common.REPO_ROOT)}' has no project version"
+            )
+            continue
+        if not isinstance(bumpversion, dict):
+            configuration_errors.append(
+                f"'{pyproject.relative_to(common.REPO_ROOT)}' has no [tool.bumpversion] section"
+            )
+            continue
+        if bumpversion.get("current_version") != project["version"]:
+            configuration_errors.append(
+                f"'{pyproject.relative_to(common.REPO_ROOT)}' has project.version "
+                f"'{project['version']}' but tool.bumpversion.current_version "
+                f"'{bumpversion.get('current_version')}'"
+            )
+            continue
+        versions[pyproject.relative_to(common.REPO_ROOT)] = project["version"]
+
+    if configuration_errors:
+        raise RuntimeError(
+            "Invalid version bump configuration:\n  - " + "\n  - ".join(configuration_errors) + "."
+        )
+    if not versions:
+        raise RuntimeError("Could not detect a version from any package.")
+
+    distinct_versions = set(versions.values())
+    if len(distinct_versions) != 1:
+        package_versions = "\n  - ".join(
+            f"'{pyproject}': {version}" for pyproject, version in versions.items()
+        )
+        raise RuntimeError(f"Packages do not all have the same version:\n  - {package_versions}.")
+
+    current_version = next(iter(distinct_versions))
+    constraint_errors = []
+    for pkg_dir in pkg_dirs:
+        pyproject = pkg_dir / "pyproject.toml"
+        for constraint in _ICON4PY_DEP_CONSTRAINT_RE.finditer(pyproject.read_text()):
+            if constraint.group(3) != current_version:
+                actual = constraint.group(0)
+                expected = f"{constraint.group(1)}{constraint.group(2)}{current_version}"
+                constraint_errors.append(
+                    f"'{pyproject.relative_to(common.REPO_ROOT)}' has dependency '{actual}' "
+                    f"but expected '{expected}'"
+                )
+    if constraint_errors:
+        raise RuntimeError(
+            "Invalid cross-package dependency constraints:\n  - "
+            + "\n  - ".join(constraint_errors)
+            + "."
+        )
+    return current_version
 
 
 def _bump_package(pkg_dir: pathlib.Path, new_version: str, dry_run: bool, verbose: bool) -> None:
@@ -100,9 +153,11 @@ def _update_cross_package_constraints(
             continue
         text = pyproject.read_text()
         new_text = _ICON4PY_DEP_CONSTRAINT_RE.sub(
-            lambda m: f"{m.group(1)}{m.group(2)}{new_version}"
-            if m.group(3) == current_version
-            else m.group(0),
+            lambda m: (
+                f"{m.group(1)}{m.group(2)}{new_version}"
+                if m.group(3) == current_version
+                else m.group(0)
+            ),
             text,
         )
         if new_text != text:
@@ -123,8 +178,8 @@ def bump_versions(
     ] = False,
 ) -> None:
     """Bump all namespace packages to NEW_VERSION and update cross-package constraints."""
-    pkg_dirs = _find_versioned_package_dirs()
-    current_version = _detect_current_version(pkg_dirs)
+    pkg_dirs = _find_package_dirs()
+    current_version = _validate_package_versions(pkg_dirs)
     typer.echo(f"Bumping all packages: {current_version} → {new_version}")
     if dry_run:
         typer.echo("  (dry-run mode — no files will be written)")

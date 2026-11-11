@@ -20,7 +20,7 @@ import typer
 
 
 if TYPE_CHECKING:
-    from icon4py.model.testing import definitions
+    from icon4py.model.testing import definitions as test_defs
 
 
 cli = typer.Typer(
@@ -28,15 +28,18 @@ cli = typer.Typer(
 )
 
 
-def get_validation_grids() -> list[definitions.GridDescription]:
-    from icon4py.model.testing import definitions  # Import here to reduce startup time of the CLI
+def get_validation_grids() -> list[test_defs.GridDescription]:
+    # Import here to reduce startup time of the CLI
+    from icon4py.model.testing import (  # noqa: PLC0415 [import-outside-top-level]
+        definitions as test_defs,
+    )
 
     return [
-        definitions.Grids.R01B01_GLOBAL,
-        definitions.Grids.R02B04_GLOBAL,
-        definitions.Grids.MCH_CH_R04B09_DSL,
-        definitions.Grids.MCH_OPR_R04B07_DOMAIN01,
-        definitions.Grids.TORUS_50000x5000,
+        test_defs.Grids.R01B01_GLOBAL,
+        test_defs.Grids.R02B04_GLOBAL,
+        test_defs.Grids.MCH_CH_R04B09_DSL,
+        test_defs.Grids.MCH_OPR_R04B07_DOMAIN01,
+        test_defs.Grids.TORUS_50000x5000,
     ]  # change to MCH_OPR_R04B07_DOMAIN01
 
 
@@ -44,10 +47,13 @@ def get_validation_grids() -> list[definitions.GridDescription]:
 def cache_key() -> None:
     """Generate a cache key for the GitHub action cache based on grid file name and download URI."""
 
-    from icon4py.model.testing import datatest_utils as dt_utils, definitions
+    from icon4py.model.testing import (  # noqa: PLC0415 [import-outside-top-level]
+        datatest_utils as dt_utils,
+        definitions as test_defs,
+    )
 
     d = "_".join(
-        grid.name + dt_utils.get_grid_archive_url(definitions.TESTDATA_ROOT_URL, grid)
+        grid.name + dt_utils.get_grid_archive_url(test_defs.TESTDATA_ROOT_URL, grid)
         for grid in get_validation_grids()
     )
     hexdigest = hashlib.md5(d.encode()).hexdigest()
@@ -57,7 +63,7 @@ def cache_key() -> None:
 @cli.command(name="download")
 def download_validation_grids() -> None:
     """Effectively download the validation grid files."""
-    from icon4py.model.testing import grid_utils
+    from icon4py.model.testing import grid_utils  # noqa: PLC0415 [import-outside-top-level]
 
     for grid in get_validation_grids():
         print(f"downloading and unpacking {grid.name}")

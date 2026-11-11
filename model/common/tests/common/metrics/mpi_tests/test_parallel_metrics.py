@@ -24,6 +24,7 @@ from ...fixtures import (
     decomposition_info,
     download_ser_data,
     experiment,
+    experiment_description,
     geometry_from_savepoint,
     grid_savepoint,
     icon_grid,
@@ -86,7 +87,7 @@ def _get_slice_tuple_from_horizontal_range(
         (attrs.COEFF_GRADEKIN, "coeff_gradekin", None),
     ],
 )
-def test_distributed_metrics_attrs(
+def test_distributed_metrics_attrs(  # noqa: PLR0917 [too-many-positional-arguments]
     backend: gtx_typing.Backend,
     metrics_savepoint: sb.MetricSavepoint,
     grid_savepoint: sb.IconGridSavepoint,
@@ -110,8 +111,10 @@ def test_distributed_metrics_attrs(
     field_ref = metrics_savepoint.__getattribute__(metrics_name)().asnumpy()
     if horizontal_range is not None:
         # We assume that the horizontal dimension exists and is the first one.
+        field_dims = attrs.attrs[attrs_name].dims
+        assert field_dims is not None
         slicer = _get_slice_tuple_from_horizontal_range(
-            factory.grid, attrs.attrs[attrs_name]["dims"][0], horizontal_range
+            factory.grid, field_dims[0], horizontal_range
         )
         field = field[slicer]
         field_ref = field_ref[slicer]
@@ -132,6 +135,7 @@ def test_distributed_metrics_attrs(
         (attrs.COEFF2_DWDZ, "coeff2_dwdz"),
         (attrs.THETA_REF_MC, "theta_ref_mc"),
         (attrs.EXNER_REF_MC, "exner_ref_mc"),
+        (attrs.RHO_REF_MC, "rho_ref_mc"),
         (attrs.RHO_REF_ME, "rho_ref_me"),
         (attrs.THETA_REF_ME, "theta_ref_me"),
         (attrs.D2DEXDZ2_FAC1_MC, "d2dexdz2_fac1_mc"),
@@ -144,10 +148,12 @@ def test_distributed_metrics_attrs(
         (attrs.MASK_PROG_HALO_C, "mask_prog_halo_c"),
         (attrs.HORIZONTAL_MASK_FOR_3D_DIVDAMP, "hmask_dd3d"),
         (attrs.WGTFAC_C, "wgtfac_c"),
+        (attrs.WGTFAC_E, "wgtfac_e"),
+        (attrs.WGTFACQ_C, "wgtfacq_c"),
         (attrs.EXNER_EXFAC, "exner_exfac"),
     ],
 )
-def test_distributed_metrics_attrs_no_halo(
+def test_distributed_metrics_attrs_no_halo(  # noqa: PLR0917 [too-many-positional-arguments]
     backend: gtx_typing.Backend,
     metrics_savepoint: sb.MetricSavepoint,
     grid_savepoint: sb.IconGridSavepoint,
@@ -179,7 +185,7 @@ def test_distributed_metrics_attrs_no_halo(
         (attrs.ZD_VERTOFFSET, "zd_vertoffset"),
     ],
 )
-def test_distributed_metrics_attrs_no_halo_regional(
+def test_distributed_metrics_attrs_no_halo_regional(  # noqa: PLR0917 [too-many-positional-arguments]
     backend: gtx_typing.Backend,
     metrics_savepoint: sb.MetricSavepoint,
     grid_savepoint: sb.IconGridSavepoint,
@@ -193,7 +199,7 @@ def test_distributed_metrics_attrs_no_halo_regional(
     if test_utils.is_embedded(backend):
         # https://github.com/GridTools/gt4py/issues/1583
         pytest.xfail("ValueError: axes don't match array")
-    if experiment == test_defs.Experiments.EXCLAIM_APE:
+    if experiment.description == test_defs.Experiments.EXCLAIM_APE:
         pytest.skip(f"Fields not computed for {experiment}")
     parallel_helpers.check_comm_size(process_props)
     parallel_helpers.log_process_properties(process_props)
@@ -208,7 +214,7 @@ def test_distributed_metrics_attrs_no_halo_regional(
 @pytest.mark.datatest
 @pytest.mark.mpi
 @pytest.mark.parametrize("process_props", [True], indirect=True)
-def test_distributed_metrics_wgtfacq_e(
+def test_distributed_metrics_wgtfacq_e(  # noqa: PLR0917 [too-many-positional-arguments]
     backend: gtx_typing.Backend,
     metrics_savepoint: sb.MetricSavepoint,
     grid_savepoint: sb.IconGridSavepoint,
@@ -230,7 +236,7 @@ def test_distributed_metrics_wgtfacq_e(
 @pytest.mark.datatest
 @pytest.mark.mpi
 @pytest.mark.parametrize("process_props", [True], indirect=True)
-def test_distributed_metrics_nflat_gradp(
+def test_distributed_metrics_nflat_gradp(  # noqa: PLR0917 [too-many-positional-arguments]
     backend: gtx_typing.Backend,
     grid_savepoint: sb.IconGridSavepoint,
     process_props: decomp_defs.ProcessProperties,
@@ -243,6 +249,6 @@ def test_distributed_metrics_nflat_gradp(
     parallel_helpers.log_local_field_size(decomposition_info)
     factory = metrics_factory_from_savepoint
 
-    value = factory.get(attrs.NFLAT_GRADP)
+    value = factory.get_scalar(attrs.NFLAT_GRADP)
     value_ref = grid_savepoint.nflat_gradp()
     assert value == value_ref

@@ -17,7 +17,7 @@ from icon4py.model.common.grid import grid_refinement, horizontal as h_grid
 from icon4py.model.common.utils import data_allocation as data_alloc
 from icon4py.model.testing import (
     datatest_utils as dt_utils,
-    definitions,
+    definitions as test_defs,
     grid_utils,
     serialbox,
     test_utils,
@@ -27,6 +27,7 @@ from icon4py.model.testing.fixtures.datatest import (
     data_provider,
     download_ser_data,
     experiment,
+    experiment_description,
     grid_savepoint,
     process_props,
 )
@@ -57,18 +58,18 @@ def domain(dim: gtx.Dimension, zone: h_grid.Zone) -> h_grid.Domain:
 
 @pytest.mark.mpi
 @pytest.mark.parametrize("process_props", [True], indirect=True)
-def test_compute_domain_bounds(
+def test_compute_domain_bounds(  # noqa: PLR0917 [too-many-positional-arguments]
     dim: gtx.Dimension,
     zone: h_grid.Zone,
     domain: h_grid.Domain,
-    experiment: definitions.Experiment,
+    experiment: test_defs.Experiment,
     grid_savepoint: serialbox.IconGridSavepoint,
     process_props: decomp_defs.ProcessProperties,
     backend: gtx.typing.Backend | None,
 ) -> None:
     if (
         process_props.is_single_rank()
-        and experiment == definitions.Experiments.EXCLAIM_APE
+        and experiment.description == test_defs.Experiments.EXCLAIM_APE
         and dim == dims.EdgeDim
     ):
         pytest.xfail(
@@ -84,7 +85,7 @@ def test_compute_domain_bounds(
         decomposition_info,
     )
     if (
-        experiment == definitions.Experiments.GAUSS3D
+        experiment.description == test_defs.Experiments.GAUSS3D
         and dim == dims.EdgeDim
         and zone in (h_grid.Zone.LOCAL, h_grid.Zone.INTERIOR, h_grid.Zone.HALO)
     ):
@@ -99,12 +100,12 @@ def test_compute_domain_bounds(
     _log.info(
         f"rank = {process_props.rank}/{process_props.comm_size}: domain={domain} : start = {computed_start} end = {computed_end} "
     )
-    assert (
-        computed_start == ref_start_index
-    ), f"rank={process_props.rank}/{process_props.comm_size} - experiment = {experiment.name}: start_index for {domain} does not match: is {computed_start}, expected {ref_start_index}"
-    assert (
-        computed_end == ref_end_index
-    ), f"rank={process_props.rank}/{process_props.comm_size} - experiment = {experiment.name}: end_index for {domain} does not match: is {computed_end}, expected {ref_end_index}"
+    assert computed_start == ref_start_index, (
+        f"rank={process_props.rank}/{process_props.comm_size} - experiment = {experiment.name}: start_index for {domain} does not match: is {computed_start}, expected {ref_start_index}"
+    )
+    assert computed_end == ref_end_index, (
+        f"rank={process_props.rank}/{process_props.comm_size} - experiment = {experiment.name}: end_index for {domain} does not match: is {computed_end}, expected {ref_end_index}"
+    )
 
 
 @pytest.mark.mpi
@@ -112,10 +113,10 @@ def test_compute_domain_bounds(
 def test_bounds_decomposition(
     process_props: decomp_defs.ProcessProperties,
     backend: gtx.typing.Backend | None,
-    experiment: definitions.Experiment,
+    experiment: test_defs.Experiment,
     dim: gtx.Dimension,
 ) -> None:
-    if experiment.grid.params.limited_area:
+    if experiment.grid.limited_area:
         pytest.xfail("Limited-area grids not yet supported")
 
     file = dt_utils.get_grid_filepath(experiment.grid)
@@ -141,9 +142,9 @@ def test_bounds_decomposition(
     end_index = grid_manager.grid.end_index
     domain = h_grid.domain(dim)
 
-    assert test_utils.is_sorted(
-        decomposition_info.halo_levels(dim)
-    ), f"Halo levels for {dim} should be sorted, but are {decomposition_info.halo_levels(dim)}"
+    assert test_utils.is_sorted(decomposition_info.halo_levels(dim)), (
+        f"Halo levels for {dim} should be sorted, but are {decomposition_info.halo_levels(dim)}"
+    )
 
     local_owned_size = decomposition_info.local_index(
         dim, decomp_defs.DecompositionInfo.EntryType.OWNED
