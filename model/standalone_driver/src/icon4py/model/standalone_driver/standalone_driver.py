@@ -38,209 +38,11 @@ from icon4py.model.standalone_driver import (
     driver_constants,
     driver_states,
     driver_utils,
+    structured_hooks,
 )
 
 
 log = logging.getLogger(__name__)
-
-
-def _program_param_names(program_callable: object) -> tuple[str, ...]:
-    past_stage = getattr(program_callable, "past_stage", None)
-    past_node = getattr(past_stage, "past_node", None)
-    params = getattr(past_node, "params", ())
-    names: list[str] = []
-    for param in params:
-        param_id = getattr(param, "id", None)
-        if param_id is not None:
-            names.append(str(param_id))
-    return tuple(names)
-
-
-def _make_structured_program_adapter(
-    original_callable: functools.partial,
-    wrapper: Callable[..., None],
-    static_kwargs: dict[str, object],
-    param_names: tuple[str, ...],
-    shadow: Callable[[Callable[..., None], dict], None] | None = None,
-) -> Callable[..., None]:
-    def _call(*args, **kwargs):
-        if args and not param_names:
-            return original_callable(*args, **kwargs)
-
-        merged_kwargs = dict(static_kwargs)
-        arg_idx = 0
-        for param_name in param_names:
-            if param_name in merged_kwargs:
-                continue
-            if arg_idx >= len(args):
-                break
-            merged_kwargs[param_name] = args[arg_idx]
-            arg_idx += 1
-
-        if arg_idx != len(args):
-            raise TypeError(
-                f"Unable to map positional args for structured call with params={param_names}."
-            )
-
-        merged_kwargs.update(kwargs)
-        if shadow is None:
-            return wrapper(**merged_kwargs)
-        return shadow(wrapper, merged_kwargs)
-
-    return _call
-
-
-def _make_shadow_runner(
-    operator: object, backend_like: object, connectivities: dict, name: str
-) -> Callable[[Callable[..., None], dict], None]:
-    """STRUCTURED_SHADOW=1: run the structured program, then the unstructured one on copies of the same inputs,
-    log every field that differs, and keep the unstructured result (so later programs see identical inputs and
-    differences do not propagate). Debug aid to find which program makes structured differ from unstructured."""
-    import numpy as np
-
-    from icon4py.model.common import model_options
-
-    # No translation file cache for the reference: its key (fingerprint_compilable_program) does not include the
-    # structured mode, so it would hand back the structured C++ the wrapper translated for the same program.
-    reference_like = (
-        {**backend_like, "otf_workflow__cached_translation": False}
-        if isinstance(backend_like, dict)
-        else backend_like
-    )
-    unstructured = operator.with_backend(model_options.customize_backend(operator, reference_like))
-    tol = float(os.environ.get("STRUCTURED_SHADOW_RTOL", "1e-10"))
-    counter = {"n": 0}
-
-    def _is_field(v: object) -> bool:
-        return hasattr(v, "ndarray") and hasattr(v, "domain")
-
-    def _run(wrapper: Callable[..., None], kwargs: dict) -> None:
-        counter["n"] += 1
-        copies: dict[int, object] = {}
-        for v in kwargs.values():
-            if _is_field(v) and id(v) not in copies:
-                copies[id(v)] = gtx.as_field(v.domain, v.ndarray.copy())
-        wrapper(**kwargs)
-        ukwargs = {k: copies.get(id(v), v) if _is_field(v) else v for k, v in kwargs.items()}
-        ukwargs["offset_provider"] = connectivities
-        # gt4py reads USE_STRUCTURED_BACKEND at compile time (pass_manager, gtfn_module, type inference):
-        # switch it off for the reference build, else the "unstructured" program gets the structured passes.
-        saved = os.environ.get("USE_STRUCTURED_BACKEND")
-        os.environ["USE_STRUCTURED_BACKEND"] = "0"
-        try:
-            unstructured(**ukwargs)
-        finally:
-            os.environ["USE_STRUCTURED_BACKEND"] = saved if saved is not None else "0"
-        for k, v in kwargs.items():
-            if not _is_field(v):
-                continue
-            s, u = np.asarray(v.asnumpy()), np.asarray(copies[id(v)].asnumpy())
-            if s.dtype == bool or not np.issubdtype(s.dtype, np.number):
-                bad = s != u
-                scale, dmax = 1.0, float(bad.sum())
-            else:
-                d = np.abs(s.astype(float) - u.astype(float))
-                scale = max(float(np.nanmax(np.abs(u))) if u.size else 0.0, 1e-300)
-                bad = ~np.isclose(s, u, rtol=tol, atol=tol * scale, equal_nan=True)
-                dmax = float(np.nanmax(d)) if d.size else 0.0
-            if bad.any():
-                rows = np.unique(np.nonzero(bad)[0])
-                log.warning(
-                    "SHADOW %s#%d %s: %d/%d differ, max_abs=%.3e (field max %.3e), first rows %s (of %d)",
-                    name, counter["n"], k, int(bad.sum()), bad.size, dmax, scale, rows[:8].tolist(), rows.size,
-                )
-            v.ndarray[...] = copies[id(v)].ndarray
-        log.info("SHADOW %s#%d checked", name, counter["n"])
-
-    return _run
-
-
-def _wrap_granule_programs_for_structured_backend(
-    granules: tuple[object, ...],
-    grid: IconGrid,
-    allocator: gtx.typing.Allocator,
-    backend_like: object = None,
-) -> None:
-    from gt4py.next.modules.cartesian_interceptor import (
-        GenericStructuredWrapper,
-        get_global_grid_mapping,
-    )
-    from gt4py.next.modules.translator import build_cell_ijk_maps
-    from gt4py.next.program_processors.runners import gtfn as gtfn_runner
-
-    _backend_factory_fn = (
-        backend_like.get("backend_factory") if isinstance(backend_like, dict) else None
-    )
-    _is_dace = (
-        _backend_factory_fn is not None
-        and "dace" in str(getattr(_backend_factory_fn, "__name__", "")).lower()
-    )
-    if _is_dace:
-        from gt4py.next.program_processors.runners.dace.workflow.backend import DaCeBackendFactory
-        _default_factory = DaCeBackendFactory
-    else:
-        _default_factory = gtfn_runner.GTFNBackendFactory
-
-    e2v_conn = grid.connectivities.get("E2V")
-    e2v_array = e2v_conn.asnumpy() if e2v_conn is not None else None
-    index_map, remap_sizes = get_global_grid_mapping(e2v_override=e2v_array)
-
-    wrapped_count = 0
-    for granule in granules:
-        for attr_name, attr_value in vars(granule).items():
-            if not isinstance(attr_value, functools.partial):
-                continue
-
-            operator = attr_value.func
-            static_kwargs = dict(attr_value.keywords or {})
-
-            # model_options.setup_program may have already wrapped this as a
-            # GenericStructuredWrapper (functools.partial(wrapper, ...)).  Reuse
-            # the existing wrapper instead of creating a double-wrapped object.
-            if isinstance(operator, GenericStructuredWrapper):
-                wrapper = operator
-                # If setup_program created the wrapper without connectivity (e.g. copy_field),
-                # inject cell mapping now using the full grid connectivities.
-                if wrapper.cell_to_ijk is None and "C2V" in grid.connectivities:
-                    import numpy as np
-                    c2v_np = grid.connectivities["C2V"].asnumpy()
-                    wrapper.cell_to_ijk, wrapper.ijk_to_cell = build_cell_ijk_maps(
-                        c2v_np, wrapper.index_map
-                    )
-                    # Also inject cell_to_ijk into the symbolic_domain_sizes_base so
-                    # the compiler knows about cell structure.
-                    if hasattr(wrapper, "_symbolic_domain_sizes_base"):
-                        wrapper._symbolic_domain_sizes_base["cell_to_ijk"] = [
-                            (int(i), int(j), int(k)) for i, j, k in np.asarray(wrapper.cell_to_ijk)
-                        ]
-                param_names = _program_param_names(wrapper._operator)
-            else:
-                wrapper = GenericStructuredWrapper(
-                    operator=operator,
-                    backend_factory=_default_factory,
-                    index_map=index_map,
-                    remap_sizes=remap_sizes,
-                    allocator=allocator,
-                    offset_provider=grid.connectivities,
-                )
-                param_names = _program_param_names(operator)
-
-            adapter = _make_structured_program_adapter(
-                original_callable=attr_value,
-                wrapper=wrapper,
-                static_kwargs=static_kwargs,
-                param_names=param_names,
-                shadow=_make_shadow_runner(
-                    wrapper._operator, backend_like, grid.connectivities,
-                    f"{type(granule).__name__}.{attr_name}",
-                )
-                if os.environ.get("STRUCTURED_SHADOW", "0") == "1"
-                else None,
-            )
-            setattr(granule, attr_name, adapter)
-            wrapped_count += 1
-
-    log.info("Structured backend enabled in standalone driver: wrapped %s program callables", wrapped_count)
 
 
 class Icon4pyDriver:
@@ -318,6 +120,8 @@ class Icon4pyDriver:
 
         wall_clock_starting_time = datetime.datetime.now()
 
+        structured_hooks.time_loop_start()  # structured backend: input mirror cache (no-op otherwise)
+
         for time_step in range(self.model_time_variables.n_time_steps):
             if self.config.profiling_stats is not None:
                 if not self.config.profiling_stats.skip_first_timestep or time_step > 0:
@@ -349,6 +153,8 @@ class Icon4pyDriver:
             self._adjust_ndyn_substeps_var(solve_nonhydro_diagnostic_state)
 
             # TODO(OngChia): simple IO enough for JW test
+
+        structured_hooks.time_loop_end()
 
         self._compute_mean_at_final_time_step(prognostic_states.current)
 
@@ -887,28 +693,17 @@ def initialize_driver(
         backend=backend,
     )
 
-    if os.environ.get("USE_STRUCTURED_BACKEND", "0") == "1":
-        # initialize_driver receives the resolved backend_like (e.g. {"backend_factory": make_custom_gtfn_backend, ...}),
-        # not the backend name any more: identify GTFN / DaCe from the factory name.
-        _factory = backend_like.get("backend_factory") if isinstance(backend_like, dict) else None
-        backend_label = str(getattr(_factory, "__name__", backend_like)).lower()
-        if "gtfn" not in backend_label and "dace" not in backend_label:
-            log.warning(
-                "USE_STRUCTURED_BACKEND=1 requested, but backend '%s' is not GTFN or DaCe. Skipping structured wrapper injection.",
-                backend_label,
-            )
-        else:
-            _wrap_granule_programs_for_structured_backend(
-                granules=(
-                    diffusion_granule,
-                    solve_nonhydro_granule,
-                    solve_nonhydro_granule.velocity_advection,
-                    tracer_advection_granule,
-                ),
-                grid=grid_manager.grid,
-                allocator=allocator,
-                backend_like=backend_like,
-            )
+    structured_hooks.install_if_enabled(  # structured (I, J, Kolor) backend: no-op unless USE_STRUCTURED_BACKEND=1
+        granules=(
+            diffusion_granule,
+            solve_nonhydro_granule,
+            solve_nonhydro_granule.velocity_advection,
+            tracer_advection_granule,
+        ),
+        grid=grid_manager.grid,
+        allocator=allocator,
+        backend_like=backend_like,
+    )
 
     icon4py_driver = Icon4pyDriver(
         config=driver_config,
