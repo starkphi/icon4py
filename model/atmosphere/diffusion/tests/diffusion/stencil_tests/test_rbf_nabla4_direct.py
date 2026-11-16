@@ -11,6 +11,8 @@ import gt4py.next as gtx
 import numpy as np
 import pytest
 
+from icon4py.model.testing import stencil_tests
+
 from icon4py.model.atmosphere.diffusion.stencils.rbf_nabla4_direct import rbf_nabla4_direct
 from icon4py.model.common import dimension as dims
 from icon4py.model.common.grid import base, horizontal as h_grid
@@ -116,9 +118,9 @@ class TestRBFNABLA4Direct(StencilTest):
         ),
     }
 
-    @staticmethod
+    @stencil_tests.static_reference
     def reference(
-        connectivities: dict[gtx.Dimension, np.ndarray],
+        grid: base.Grid,
         *,
         u_vert: np.ndarray,
         v_vert: np.ndarray,
@@ -133,6 +135,10 @@ class TestRBFNABLA4Direct(StencilTest):
         horizontal_end: int,
         **kwargs: Any,
     ) -> dict[str, np.ndarray]:
+        connectivities = {
+            gtx.Dimension(name, gtx.DimensionKind.LOCAL): table
+            for name, table in stencil_tests.connectivities_asnumpy(grid).items()
+        }
         z_nabla4_e2 = _calculate_nabla4_full_numpy(
             connectivities,
             u_vert,
@@ -153,24 +159,24 @@ class TestRBFNABLA4Direct(StencilTest):
         )
         return dict(u_vert_out=u_vert_out, v_vert_out=v_vert_out)
 
-    @pytest.fixture
-    def input_data(self, grid: base.Grid) -> dict:
-        u_vert = data_alloc.random_field(grid, dims.VertexDim, dims.KDim)
-        v_vert = data_alloc.random_field(grid, dims.VertexDim, dims.KDim)
+    @stencil_tests.input_data_fixture
+    def input_data(data_alloc: stencil_tests.DataAllocationWrapper, grid: base.Grid) -> dict:
+        u_vert = data_alloc.random_field(dims.VertexDim, dims.KDim)
+        v_vert = data_alloc.random_field(dims.VertexDim, dims.KDim)
 
-        primal_normal_vert_v1 = data_alloc.random_field(grid, dims.EdgeDim, dims.E2C2VDim)
-        primal_normal_vert_v2 = data_alloc.random_field(grid, dims.EdgeDim, dims.E2C2VDim)
+        primal_normal_vert_v1 = data_alloc.random_field(dims.EdgeDim, dims.E2C2VDim)
+        primal_normal_vert_v2 = data_alloc.random_field(dims.EdgeDim, dims.E2C2VDim)
 
-        inv_vert_vert_length = data_alloc.random_field(grid, dims.EdgeDim)
-        inv_primal_edge_length = data_alloc.random_field(grid, dims.EdgeDim)
+        inv_vert_vert_length = data_alloc.random_field(dims.EdgeDim)
+        inv_primal_edge_length = data_alloc.random_field(dims.EdgeDim)
 
-        z_nabla2_e = data_alloc.random_field(grid, dims.EdgeDim, dims.KDim)
+        z_nabla2_e = data_alloc.random_field(dims.EdgeDim, dims.KDim)
 
-        ptr_coeff_1 = data_alloc.random_field(grid, dims.VertexDim, dims.V2EDim, dtype=wpfloat)
-        ptr_coeff_2 = data_alloc.random_field(grid, dims.VertexDim, dims.V2EDim, dtype=wpfloat)
+        ptr_coeff_1 = data_alloc.random_field(dims.VertexDim, dims.V2EDim, dtype=wpfloat)
+        ptr_coeff_2 = data_alloc.random_field(dims.VertexDim, dims.V2EDim, dtype=wpfloat)
 
-        u_vert_out = data_alloc.zero_field(grid, dims.VertexDim, dims.KDim, dtype=wpfloat)
-        v_vert_out = data_alloc.zero_field(grid, dims.VertexDim, dims.KDim, dtype=wpfloat)
+        u_vert_out = data_alloc.zero_field(dims.VertexDim, dims.KDim, dtype=wpfloat)
+        v_vert_out = data_alloc.zero_field(dims.VertexDim, dims.KDim, dtype=wpfloat)
 
         # Build V2E2C2V connectivity (7 unique vertex-to-vertex paths) and inject into grid.
         v2e_table = grid.connectivities["V2E"].asnumpy()

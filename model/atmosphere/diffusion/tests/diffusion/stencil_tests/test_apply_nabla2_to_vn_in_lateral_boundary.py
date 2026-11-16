@@ -11,7 +11,6 @@ import gt4py.next as gtx
 import numpy as np
 import pytest
 from gt4py.next.modules.translator import pack_edge_field, unpack_edge_field, build_index_map_from_lonlat_e2v
-from gt4py.next.program_processors.runners.gtfn import run_gtfn_cached as gtfn_cpu
 from gt4py.next.program_processors.program_setup_utils import setup_program
 import xarray as xr
 import os

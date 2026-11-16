@@ -8,7 +8,10 @@
 import gt4py.next as gtx
 import numpy as np
 import pytest
-from gt4py.next.program_processors.runners.gtfn import run_gtfn_cached as gtfn_cpu
+
+from icon4py.model.common.grid import base
+
+from icon4py.model.testing import stencil_tests
 from gt4py.next.program_processors.program_setup_utils import setup_program
 from gt4py.next.modules.translator import pack_cell_field, unpack_cell_field
 
@@ -41,9 +44,9 @@ class TestMoApplyNabla2ToW(StencilTest):
     PROGRAM = apply_nabla2_to_w
     OUTPUTS = ("w",)
 
-    @staticmethod
+    @stencil_tests.static_reference
     def reference(
-        connectivities: dict[gtx.Dimension, np.ndarray],
+        grid: base.Grid,
         area: np.ndarray,
         z_nabla2_c: np.ndarray,
         geofac_n2s: np.ndarray,
@@ -51,15 +54,19 @@ class TestMoApplyNabla2ToW(StencilTest):
         diff_multfac_w: float,
         **kwargs,
     ) -> dict:
+        connectivities = {
+            gtx.Dimension(name, gtx.DimensionKind.LOCAL): table
+            for name, table in stencil_tests.connectivities_asnumpy(grid).items()
+        }
         w = apply_nabla2_to_w_numpy(connectivities, area, z_nabla2_c, geofac_n2s, w, diff_multfac_w)
         return dict(w=w)
 
-    @pytest.fixture
-    def input_data(self, grid):
-        area = random_field(grid, dims.CellDim, dtype=wpfloat)
-        z_nabla2_c = random_field(grid, dims.CellDim, dims.KDim, dtype=vpfloat)
-        geofac_n2s = random_field(grid, dims.CellDim, dims.C2E2CODim, dtype=wpfloat)
-        w = random_field(grid, dims.CellDim, dims.KDim, dtype=wpfloat)
+    @stencil_tests.input_data_fixture
+    def input_data(data_alloc: stencil_tests.DataAllocationWrapper, grid: base.Grid):
+        area = data_alloc.random_field(dims.CellDim, dtype=wpfloat)
+        z_nabla2_c = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=vpfloat)
+        geofac_n2s = data_alloc.random_field(dims.CellDim, dims.C2E2CODim, dtype=wpfloat)
+        w = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=wpfloat)
         return dict(
             area=area,
             z_nabla2_c=z_nabla2_c,

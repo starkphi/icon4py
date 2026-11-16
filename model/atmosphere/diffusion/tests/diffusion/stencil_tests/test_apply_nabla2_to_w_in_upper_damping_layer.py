@@ -8,8 +8,9 @@
 import gt4py.next as gtx
 import numpy as np
 import pytest
+
+from icon4py.model.testing import stencil_tests
 from gt4py.next.program_processors.program_setup_utils import setup_program
-from gt4py.next.program_processors.runners.gtfn import run_gtfn_cached as gtfn_cpu
 from gt4py.next.modules.translator import pack_cell_field, unpack_cell_field
 
 from icon4py.model.atmosphere.diffusion.stencils.apply_nabla2_to_w_in_upper_damping_layer import (
@@ -38,12 +39,12 @@ class TestApplyNabla2ToWInUpperDampingLayer(StencilTest):
     PROGRAM = apply_nabla2_to_w_in_upper_damping_layer
     OUTPUTS = ("w",)
 
-    @pytest.fixture
-    def input_data(self, grid: base.Grid):
-        w = random_field(grid, dims.CellDim, dims.KDim, dtype=wpfloat)
-        diff_multfac_n2w = random_field(grid, dims.KDim, dtype=wpfloat)
-        cell_area = random_field(grid, dims.CellDim, dtype=wpfloat)
-        z_nabla2_c = random_field(grid, dims.CellDim, dims.KDim, dtype=vpfloat)
+    @stencil_tests.input_data_fixture
+    def input_data(data_alloc: stencil_tests.DataAllocationWrapper, grid: base.Grid):
+        w = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=wpfloat)
+        diff_multfac_n2w = data_alloc.random_field(dims.KDim, dtype=wpfloat)
+        cell_area = data_alloc.random_field(dims.CellDim, dtype=wpfloat)
+        z_nabla2_c = data_alloc.random_field(dims.CellDim, dims.KDim, dtype=vpfloat)
 
         return dict(
             w=w,
@@ -56,15 +57,19 @@ class TestApplyNabla2ToWInUpperDampingLayer(StencilTest):
             vertical_end=gtx.int32(grid.num_levels),
         )
 
-    @staticmethod
+    @stencil_tests.static_reference
     def reference(
-        connectivities: dict[gtx.Dimension, np.ndarray],
+        grid: base.Grid,
         w: np.ndarray,
         diff_multfac_n2w: np.ndarray,
         cell_area: np.ndarray,
         z_nabla2_c: np.ndarray,
         **kwargs,
     ) -> dict:
+        connectivities = {
+            gtx.Dimension(name, gtx.DimensionKind.LOCAL): table
+            for name, table in stencil_tests.connectivities_asnumpy(grid).items()
+        }
         w = apply_nabla2_to_w_in_upper_damping_layer_numpy(
             w, diff_multfac_n2w, cell_area, z_nabla2_c
         )

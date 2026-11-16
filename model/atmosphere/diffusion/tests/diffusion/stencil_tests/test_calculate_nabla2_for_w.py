@@ -8,8 +8,9 @@
 import gt4py.next as gtx
 import numpy as np
 import pytest
+
+from icon4py.model.testing import stencil_tests
 from gt4py.next.program_processors.program_setup_utils import setup_program
-from gt4py.next.program_processors.runners.gtfn import run_gtfn_cached as gtfn_cpu
 from gt4py.next.modules.translator import pack_cell_field, unpack_cell_field, build_index_map_from_lonlat_e2v, build_cell_to_ijk
 
 from icon4py.model.atmosphere.diffusion.stencils.calculate_nabla2_for_w import (
@@ -38,21 +39,25 @@ class TestCalculateNabla2ForW(StencilTest):
     PROGRAM = calculate_nabla2_for_w
     OUTPUTS = ("z_nabla2_c",)
 
-    @staticmethod
+    @stencil_tests.static_reference
     def reference(
-        connectivities: dict[gtx.Dimension, np.ndarray],
+        grid: base.Grid,
         w: np.ndarray,
         geofac_n2s: np.ndarray,
         **kwargs,
     ) -> dict:
+        connectivities = {
+            gtx.Dimension(name, gtx.DimensionKind.LOCAL): table
+            for name, table in stencil_tests.connectivities_asnumpy(grid).items()
+        }
         z_nabla2_c = calculate_nabla2_for_w_numpy(connectivities, w, geofac_n2s)
         return dict(z_nabla2_c=z_nabla2_c)
 
-    @pytest.fixture
-    def input_data(self, grid: base.Grid) -> dict:
-        w = constant_field(grid, 1.0, dims.CellDim, dims.KDim)
-        geofac_n2s = constant_field(grid, 2.0, dims.CellDim, dims.C2E2CODim)
-        z_nabla2_c = zero_field(grid, dims.CellDim, dims.KDim)
+    @stencil_tests.input_data_fixture
+    def input_data(data_alloc: stencil_tests.DataAllocationWrapper, grid: base.Grid) -> dict:
+        w = data_alloc.constant_field(1.0, dims.CellDim, dims.KDim)
+        geofac_n2s = data_alloc.constant_field(2.0, dims.CellDim, dims.C2E2CODim)
+        z_nabla2_c = data_alloc.zero_field(dims.CellDim, dims.KDim)
 
         return dict(
             w=w,

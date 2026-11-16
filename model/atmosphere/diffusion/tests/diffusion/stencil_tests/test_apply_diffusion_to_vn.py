@@ -10,6 +10,8 @@ from typing import Any
 import gt4py.next as gtx
 import numpy as np
 import pytest
+
+from icon4py.model.testing import stencil_tests
 from dataclasses import replace
 
 from icon4py.model.atmosphere.diffusion.stencils.apply_diffusion_to_vn import apply_diffusion_to_vn
@@ -20,12 +22,21 @@ from icon4py.model.testing.stencil_tests import StandardStaticVariants, StencilT
 
 from icon4py.model.common import type_alias as ta
 
-from .test_apply_nabla2_and_nabla4_global_to_vn import apply_nabla2_and_nabla4_global_to_vn_numpy
 from .test_apply_nabla2_and_nabla4_to_vn import apply_nabla2_and_nabla4_to_vn_numpy
 from .test_apply_nabla2_to_vn_in_lateral_boundary import (
     apply_nabla2_to_vn_in_lateral_boundary_numpy,
 )
 from .test_calculate_nabla4 import calculate_nabla4_numpy
+
+
+def apply_nabla2_and_nabla4_global_to_vn_numpy(
+    area_edge, kh_smag_e, z_nabla2_e, z_nabla4_e2, diff_multfac_vn, vn
+):
+    # was in test_apply_nabla2_and_nabla4_global_to_vn.py (deleted on main, #1514)
+    area_edge = np.expand_dims(area_edge, axis=-1)
+    diff_multfac_vn = np.expand_dims(diff_multfac_vn, axis=0)
+    vn = vn + area_edge * (kh_smag_e * z_nabla2_e - diff_multfac_vn * z_nabla4_e2 * area_edge)
+    return vn
 
 
 @pytest.mark.uses_concat_where
@@ -51,9 +62,9 @@ class TestApplyDiffusionToVn(StencilTest):
         ),
     }
 
-    @staticmethod
+    @stencil_tests.static_reference
     def reference(
-        connectivities: dict[gtx.Dimension, np.ndarray],
+        grid: base.Grid,
         u_vert: np.ndarray,
         v_vert: np.ndarray,
         primal_normal_vert_v1: np.ndarray,
@@ -72,6 +83,10 @@ class TestApplyDiffusionToVn(StencilTest):
         limited_area: bool,
         **kwargs: Any,
     ):
+        connectivities = {
+            gtx.Dimension(name, gtx.DimensionKind.LOCAL): table
+            for name, table in stencil_tests.connectivities_asnumpy(grid).items()
+        }
         edge = np.arange(area_edge.shape[0])
         vn_cp = vn.copy()
         z_nabla4_e2 = calculate_nabla4_numpy(
@@ -122,23 +137,23 @@ class TestApplyDiffusionToVn(StencilTest):
 
         return dict(vn=vn)
 
-    @pytest.fixture
-    def input_data(self, grid: base.Grid) -> dict:
-        u_vert = data_alloc.random_field(grid, dims.VertexDim, dims.KDim)
-        v_vert = data_alloc.random_field(grid, dims.VertexDim, dims.KDim)
+    @stencil_tests.input_data_fixture
+    def input_data(data_alloc: stencil_tests.DataAllocationWrapper, grid: base.Grid) -> dict:
+        u_vert = data_alloc.random_field(dims.VertexDim, dims.KDim)
+        v_vert = data_alloc.random_field(dims.VertexDim, dims.KDim)
 
-        primal_normal_vert_v1 = data_alloc.random_field(grid, dims.EdgeDim, dims.E2C2VDim)
-        primal_normal_vert_v2 = data_alloc.random_field(grid, dims.EdgeDim, dims.E2C2VDim)
+        primal_normal_vert_v1 = data_alloc.random_field(dims.EdgeDim, dims.E2C2VDim)
+        primal_normal_vert_v2 = data_alloc.random_field(dims.EdgeDim, dims.E2C2VDim)
 
-        inv_vert_vert_length = data_alloc.random_field(grid, dims.EdgeDim)
-        inv_primal_edge_length = data_alloc.random_field(grid, dims.EdgeDim)
+        inv_vert_vert_length = data_alloc.random_field(dims.EdgeDim)
+        inv_primal_edge_length = data_alloc.random_field(dims.EdgeDim)
 
-        area_edge = data_alloc.random_field(grid, dims.EdgeDim)
-        kh_smag_e = data_alloc.random_field(grid, dims.EdgeDim, dims.KDim)
-        z_nabla2_e = data_alloc.random_field(grid, dims.EdgeDim, dims.KDim)
-        diff_multfac_vn = data_alloc.random_field(grid, dims.KDim)
-        vn = data_alloc.random_field(grid, dims.EdgeDim, dims.KDim)
-        nudgecoeff_e = data_alloc.random_field(grid, dims.EdgeDim)
+        area_edge = data_alloc.random_field(dims.EdgeDim)
+        kh_smag_e = data_alloc.random_field(dims.EdgeDim, dims.KDim)
+        z_nabla2_e = data_alloc.random_field(dims.EdgeDim, dims.KDim)
+        diff_multfac_vn = data_alloc.random_field(dims.KDim)
+        vn = data_alloc.random_field(dims.EdgeDim, dims.KDim)
+        nudgecoeff_e = data_alloc.random_field(dims.EdgeDim)
 
         limited_area = grid.limited_area if hasattr(grid, "limited_area") else True
         fac_bdydiff_v = 5.0
