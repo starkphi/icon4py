@@ -9,7 +9,7 @@ import gt4py.next as gtx
 from gt4py.next import astype, sqrt
 
 from icon4py.model.common import dimension as dims, field_type_aliases as fa
-from icon4py.model.common.dimension import E2C2V
+from icon4py.model.common.dimension import E2C2V, E2C2VDim
 from icon4py.model.common.math.differential_operators import laplacian_on_edge
 from icon4py.model.common.type_alias import vpfloat, wpfloat
 

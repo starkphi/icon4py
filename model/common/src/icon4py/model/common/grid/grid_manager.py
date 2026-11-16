@@ -193,7 +193,7 @@ class GridManager:
             },
         }
 
-        if geometry_type in (icon.GeometryType.TORUS, icon.GeometryType.CARTESIAN) | icon.GeometryType.CARTESIAN:
+        if geometry_type in (icon.GeometryType.TORUS, icon.GeometryType.CARTESIAN):
             coordinates[dims.CellDim]["x"] = gtx.as_field(
                 (dims.CellDim,),
                 self._reader.variable(gridfile.CoordinateName.CELL_X, indices=my_cell_indices),
