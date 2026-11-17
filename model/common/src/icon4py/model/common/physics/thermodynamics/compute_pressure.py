@@ -22,6 +22,7 @@ from icon4py.model.common import (
     type_alias as ta,
 )
 from icon4py.model.common.constants import PhysicsConstants
+from icon4py.model.common import structured_hooks
 from icon4py.model.common.grid import horizontal as h_grid
 from icon4py.model.common.math.vertical_operations import (
     _copy_model_level_below_to_half_levels_on_cells,
@@ -167,7 +168,7 @@ def compute_surface_and_hydrostatic_pressure_ndarray(
         grid, dims.CellDim, dims.KDim, allocator=allocator, dtype=ta.wpfloat
     )
     cell_domain = h_grid.domain(dims.CellDim)
-    compute_surface_and_hydrostatic_pressure.with_backend(backend)(
+    structured_hooks.with_backend(compute_surface_and_hydrostatic_pressure, backend, grid.connectivities)(  # structured backend hook
         exner=exner,
         virtual_temperature=virtual_temperature,
         ddqz_z_full=ddqz_z_full,

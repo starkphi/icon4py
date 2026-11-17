@@ -197,7 +197,17 @@ def setup_program(
             remap_sizes=remap_sizes,
             allocator=backend,
             offset_provider=offset_provider,
-            symbolic_domain_sizes={**horizontal_sizes, **vertical_sizes},
+            symbolic_domain_sizes={
+                **horizontal_sizes,
+                **vertical_sizes,
+                # scalar constant_args = what the unstructured path compiles in as static args (bound_static_args
+                # below); the structured pipeline inlines them (pass_manager.pre_inline_scalar_params)
+                **{
+                    f"__static_scalar__{k}": v
+                    for k, v in constant_args.items()
+                    if gtx.is_scalar_type(v)
+                },
+            },
         )
         return functools.partial(
             wrapper,

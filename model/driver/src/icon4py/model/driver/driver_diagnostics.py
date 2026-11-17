@@ -24,6 +24,7 @@ import gt4py.next as gtx
 import xarray as xr
 
 from icon4py.model.common import dimension as dims, type_alias as ta
+from icon4py.model.common import structured_hooks
 from icon4py.model.common.grid import base as grid_base, horizontal as h_grid
 from icon4py.model.common.interpolation import interpolation_attributes as intp_attr
 from icon4py.model.common.interpolation.stencils import edge_2_cell_vector_rbf_interpolation as rbf
@@ -173,7 +174,7 @@ class DiagnosticsComputer:
         programs = _Programs.needed_by(requested)
 
         if programs.temperature:
-            compute_temperature.compute_virtual_temperature_and_temperature.with_backend(backend)(
+            structured_hooks.with_backend(compute_temperature.compute_virtual_temperature_and_temperature, backend, self._grid.connectivities)(  # structured backend hook
                 qv=self._tracer_or_zero(tracer_state.qv),
                 qc=self._tracer_or_zero(tracer_state.qc),
                 qi=self._tracer_or_zero(tracer_state.qi),
@@ -193,7 +194,7 @@ class DiagnosticsComputer:
 
         if programs.winds:
             assert self._rbf_vec_coeff_c1 is not None and self._rbf_vec_coeff_c2 is not None
-            rbf.edge_2_cell_vector_rbf_interpolation.with_backend(backend)(
+            structured_hooks.with_backend(rbf.edge_2_cell_vector_rbf_interpolation, backend, self._grid.connectivities)(  # structured backend hook
                 p_e_in=prognostic_state.vn,
                 ptr_coeff_1=self._rbf_vec_coeff_c1,
                 ptr_coeff_2=self._rbf_vec_coeff_c2,
@@ -208,7 +209,7 @@ class DiagnosticsComputer:
 
         if programs.pressure:
             assert self._ddqz_z_full is not None
-            compute_pressure.compute_surface_and_hydrostatic_pressure.with_backend(backend)(
+            structured_hooks.with_backend(compute_pressure.compute_surface_and_hydrostatic_pressure, backend, self._grid.connectivities)(  # structured backend hook
                 exner=prognostic_state.exner,
                 virtual_temperature=diagnostic_state.virtual_temperature,
                 ddqz_z_full=self._ddqz_z_full,

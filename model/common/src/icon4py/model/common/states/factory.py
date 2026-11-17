@@ -612,7 +612,7 @@ class ProgramFieldProvider(FieldProvider, NeedsExchange):
                 index_map, remap_sizes = get_global_grid_mapping()
                 wrapper = GenericStructuredWrapper(
                     operator=self._func,
-                    backend_factory=gtfn_runner.GTFNBackendFactory,
+                    backend_factory=gtfn_runner.make_gtfn_toolchain,  # merge: GTFNBackendFactory removed upstream
                     index_map=index_map,
                     remap_sizes=remap_sizes,
                     allocator=backend,

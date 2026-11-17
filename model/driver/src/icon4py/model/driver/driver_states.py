@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING, NamedTuple
 import devtools
 
 import icon4py.model.common.utils as common_utils
+from icon4py.model.common import structured_hooks
 from icon4py.model.atmosphere.diffusion import diffusion_states
 from icon4py.model.atmosphere.dycore import dycore_states
 from icon4py.model.atmosphere.tracer_advection import tracer_advection_states
@@ -318,7 +319,7 @@ def assemble_driver_states(
     rbf_vec_coeff_c1 = static_fields.interpolation.get(interpolation_attributes.RBF_VEC_COEFF_C1)
     rbf_vec_coeff_c2 = static_fields.interpolation.get(interpolation_attributes.RBF_VEC_COEFF_C2)
 
-    edge_2_cell_vector_rbf_interpolation.edge_2_cell_vector_rbf_interpolation.with_backend(backend)(
+    structured_hooks.with_backend(edge_2_cell_vector_rbf_interpolation.edge_2_cell_vector_rbf_interpolation, backend, grid.connectivities)(  # structured backend hook
         p_e_in=prognostic_states.current.vn,
         ptr_coeff_1=rbf_vec_coeff_c1,
         ptr_coeff_2=rbf_vec_coeff_c2,

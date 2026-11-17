@@ -57,6 +57,7 @@ from icon4py.model.driver import (
     driver_io,
     driver_states,
     driver_utils,
+    structured_hooks,
 )
 
 
@@ -220,6 +221,8 @@ class Icon4pyDriver:
 
             self._diffuse_before_time_loop(diffusion_diagnostic_state, prognostic_states.current)
 
+            structured_hooks.time_loop_start()  # structured backend: input mirror cache (no-op otherwise)
+
             for time_step in range(self.model_time_variables.n_time_steps):
                 if self.config.driver.profiling_options is not None:
                     if (
@@ -276,6 +279,8 @@ class Icon4pyDriver:
         finally:
             if self.io_monitor is not None:
                 self.io_monitor.close()
+
+        structured_hooks.time_loop_end(prognostic_states.current)
 
         self._compute_mean_at_final_time_step(prognostic_states.current)
 
@@ -776,6 +781,13 @@ def initialize_driver(
         process_props=process_props,
         decomposition_info=decomposition_info,
     )
+    structured_hooks.install_if_enabled(  # structured (I, J, Kolor) backend: no-op unless USE_STRUCTURED_BACKEND=1
+        granules=(granules.diffusion, granules.solve_nonhydro, granules.tracer_advection),
+        grid=grid_manager.grid,
+        allocator=allocator,
+        backend=backend,
+    )
+
     io_monitor = output_assembler = None
     if config.io is not None:
         log.info("Initializing IO monitor")
