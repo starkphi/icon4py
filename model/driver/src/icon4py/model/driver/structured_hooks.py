@@ -197,7 +197,8 @@ def _make_shadow_runner(  # noqa: PLR0915 [too-many-statements]  # debug aid, ke
         for k, v in kwargs.items():
             if not _is_field(v):
                 continue
-            s, u = np.asarray(v.asnumpy()), np.asarray(copies[id(v)].asnumpy())
+            # copy: on numpy asnumpy() is a view, and the field is overwritten with the unstructured result below
+            s, u = np.array(v.asnumpy(), copy=True), np.asarray(copies[id(v)].asnumpy())
             bad, scale, dmax = _compare(s, u)
             if bad.any():
                 rows = np.unique(np.nonzero(bad)[0])
@@ -232,6 +233,80 @@ def _make_shadow_runner(  # noqa: PLR0915 [too-many-statements]  # debug aid, ke
         log.info("SHADOW %s#%d checked", name, counter["n"])
 
     return _run
+
+
+def _split_programs_for(attr_name: str, wrapper: object) -> tuple | None:
+    """Programs that replace a fused granule program in structured mode (structured_programs.SPLIT_PROGRAMS), or None.
+    Only for programs that setup_program already wrapped (their wrapper carries sizes and static params);
+    STRUCTURED_SPLIT_PROGRAMS=0 keeps the fused programs (to reproduce the halo-frame error)."""
+    from gt4py.next.modules.cartesian_interceptor import GenericStructuredWrapper
+
+    from icon4py.model.driver import structured_programs
+
+    if os.environ.get("STRUCTURED_SPLIT_PROGRAMS", "1") == "0" or not isinstance(
+        wrapper, GenericStructuredWrapper
+    ):
+        return None
+    return structured_programs.SPLIT_PROGRAMS.get(attr_name)
+
+
+def _make_split_adapter(
+    programs: tuple,
+    fused_wrapper: object,
+    original_callable: functools.partial,
+    backend: object,
+    connectivities: dict,
+    name: str,
+) -> Callable[..., None]:
+    """Run `programs` in order instead of the fused program, each in its own structured wrapper (so the output
+    unpack + input pack in between refreshes the halo). Every part takes its own parameters from the fused call's
+    bound and call-time arguments; sizes and static params are inherited from the fused program's wrapper."""
+    import numpy as np
+    from gt4py.next.modules.cartesian_interceptor import GenericStructuredWrapper
+
+    bound = dict(original_callable.keywords or {})
+    fused_static = frozenset(getattr(fused_wrapper, "_static_params", frozenset()))
+    shadow_on = os.environ.get("STRUCTURED_SHADOW", "0") == "1"
+    parts = []
+    for program in programs:
+        params = frozenset(_program_param_names(program))
+        sizes = {
+            k: v
+            for k, v in bound.items()
+            if k in params
+            and k not in fused_static
+            and isinstance(v, (int, np.integer))
+            and not isinstance(v, (bool, np.bool_))
+        }
+        sub = GenericStructuredWrapper(
+            operator=program,
+            backend_factory=fused_wrapper._backend_factory,
+            index_map=fused_wrapper.index_map,
+            remap_sizes=fused_wrapper.remap_sizes,
+            allocator=fused_wrapper.allocator,
+            offset_provider=bound.get("offset_provider", connectivities),
+            symbolic_domain_sizes=sizes,
+            static_params=fused_static & params,
+        )
+        sub_bound = {k: v for k, v in bound.items() if k in params or k == "offset_provider"}
+        part_name = f"{name}[{getattr(program, '__name__', None) or program.definition_stage.definition.__name__}]"
+        shadow = (
+            _make_shadow_runner(program, backend, connectivities, part_name) if shadow_on else None
+        )
+        parts.append((sub, sub_bound, params, shadow))
+    log.info("structured mode: %s split into %d programs", name, len(parts))
+
+    def _call(*args, **kwargs):
+        if args:
+            raise TypeError(f"{name}: the structured split adapter takes keyword arguments only")
+        for sub, sub_bound, params, shadow in parts:
+            kw = {**sub_bound, **{k: v for k, v in kwargs.items() if k in params}}
+            if shadow is None:
+                sub(**kw)
+            else:
+                shadow(sub, kw)
+
+    return _call
 
 
 def _wrap_granule_programs_for_structured_backend(
@@ -299,6 +374,23 @@ def _wrap_granule_programs_for_structured_backend(
                     offset_provider=grid.connectivities,
                 )
                 param_names = _program_param_names(operator)
+
+            split = _split_programs_for(attr_name, wrapper)
+            if split is not None:
+                setattr(
+                    granule,
+                    attr_name,
+                    _make_split_adapter(
+                        split,
+                        wrapper,
+                        attr_value,
+                        backend,
+                        grid.connectivities,
+                        f"{type(granule).__name__}.{attr_name}",
+                    ),
+                )
+                wrapped_count += 1
+                continue
 
             adapter = _make_structured_program_adapter(
                 original_callable=attr_value,
